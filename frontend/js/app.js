@@ -67,7 +67,14 @@ async function loadTabData(tab) {
     if (state.user) {
       const avatarEl = document.getElementById("user-avatar");
       const nameEl = document.getElementById("user-name-label");
-      if (avatarEl) avatarEl.textContent = state.user.first_name?.[0]?.toUpperCase() || "U";
+      const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      if (avatarEl) {
+        if (tgUser?.photo_url) {
+          avatarEl.innerHTML = `<img src="${tgUser.photo_url}" alt="Profile" class="w-full h-full object-cover" />`;
+        } else {
+          avatarEl.textContent = state.user.first_name?.[0]?.toUpperCase() || "U";
+        }
+      }
       if (nameEl) nameEl.textContent = state.user.first_name || "";
     }
     renderActiveTab();
