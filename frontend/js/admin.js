@@ -244,6 +244,7 @@ async function renderSettings(body) {
     <div class="glass-card p-5">
       <div class="admin-field"><label>Commission %</label><input id="set-ref-commission" type="number" step="0.1" value="${s.referral_commission_percent}" /></div>
       <div class="admin-field"><label>Signup Bonus (USDT)</label><input id="set-ref-bonus" type="number" step="0.001" value="${s.referral_signup_bonus}" /></div>
+      <div class="admin-field"><label>Referral Fixed Reward (USDT)</label><input id="set-ref-fixed" type="number" step="0.001" value="${s.referral_fixed_reward}" /></div>
     </div>
 
     <h3 class="admin-sect">Withdrawals</h3>
@@ -293,6 +294,7 @@ async function saveAllSettings() {
     ad_cooldown_seconds: parseInt(document.getElementById("set-ad-cooldown").value, 10),
     referral_commission_percent: parseFloat(document.getElementById("set-ref-commission").value),
     referral_signup_bonus: parseFloat(document.getElementById("set-ref-bonus").value),
+    referral_fixed_reward: parseFloat(document.getElementById("set-ref-fixed").value),
     min_withdrawal_usdt: parseFloat(document.getElementById("set-min-wd").value),
     withdrawal_tiers: document.getElementById("set-tiers").value.split(",").map(s => parseFloat(s.trim())).filter(n => !isNaN(n)),
     daily_checkin_enabled: document.getElementById("set-checkin-enabled").checked,
