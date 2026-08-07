@@ -123,8 +123,12 @@ function renderWallet(state) {
     <div class="glass-card p-5 mt-4">
       <h3 class="font-display font-semibold mb-3">Request Withdrawal</h3>
 
-      <label class="text-xs text-gray-400 mb-1.5 block">Select Amount</label>
-      <div class="grid grid-cols-3 gap-2 mb-4" id="tier-buttons">${tierButtons}</div>
+      <label class="text-xs text-gray-400 mb-1.5 block">Quick Select Amount</label>
+      <div class="grid grid-cols-3 gap-2 mb-3" id="tier-buttons">${tierButtons}</div>
+
+      <label class="text-xs text-gray-400 mb-1.5 block">Or Enter Amount (USDT)</label>
+      <input id="input-withdraw-amount" type="number" step="0.01" placeholder="e.g. 15.50"
+        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-3 outline-none focus:border-neon/50" />
 
       <label class="text-xs text-gray-400 mb-1.5 block">Binance Pay ID or USDT Wallet Address</label>
       <input id="input-payout-id" type="text" placeholder="e.g. 123456789"

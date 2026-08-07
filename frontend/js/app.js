@@ -138,19 +138,23 @@ document.addEventListener("click", async (e) => {
     tierBtn.classList.add("border-glow");
     tierBtn.dataset.selected = "true";
     document.querySelectorAll(".tier-btn").forEach(b => { if (b !== tierBtn) delete b.dataset.selected; });
+    const amtInput = document.getElementById("input-withdraw-amount");
+    if (amtInput) amtInput.value = tierBtn.dataset.amount;
     return;
   }
 
   // Submit withdrawal
   if (e.target.closest("#btn-withdraw")) {
+    const amtInput = document.getElementById("input-withdraw-amount");
     const selectedTier = document.querySelector(".tier-btn[data-selected='true']");
+    const amount = parseFloat(amtInput?.value || selectedTier?.dataset?.amount);
     const payoutId = document.getElementById("input-payout-id").value.trim();
-    if (!selectedTier) { showToast("Select an amount first", "error"); return; }
+    if (!amount || isNaN(amount) || amount <= 0) { showToast("Enter or select a valid withdrawal amount", "error"); return; }
     if (!payoutId) { showToast("Enter your Binance Pay ID or wallet address", "error"); return; }
 
     try {
       await Api.withdraw({
-        amount: Number(selectedTier.dataset.amount),
+        amount: amount,
         method: "binance_pay",
         payout_id: payoutId,
       });
