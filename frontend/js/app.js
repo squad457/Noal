@@ -64,6 +64,12 @@ async function loadTabData(tab) {
       state.referral = await Api.referralStats();
     }
     document.getElementById("streak-count").textContent = state.user?.streak_count ?? 0;
+    if (state.user) {
+      const avatarEl = document.getElementById("user-avatar");
+      const nameEl = document.getElementById("user-name-label");
+      if (avatarEl) avatarEl.textContent = state.user.first_name?.[0]?.toUpperCase() || "U";
+      if (nameEl) nameEl.textContent = state.user.first_name || "";
+    }
     renderActiveTab();
   } catch (err) {
     showToast(err.message, "error");

@@ -41,9 +41,12 @@
 
 <!-- Top bar -->
 <header class="relative z-10 flex items-center justify-between px-5 pt-5 pb-3">
-  <div class="flex items-center gap-2">
-    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-neon to-cyan flex items-center justify-center font-display font-bold text-base text-sm">$</div>
-    <span class="font-display font-semibold text-lg">USDT<span class="text-neon">Rewards</span></span>
+  <div class="flex items-center gap-3">
+    <div id="user-avatar" class="w-9 h-9 rounded-full bg-gradient-to-tr from-neon/30 to-cyan/30 border border-neon/50 flex items-center justify-center font-display font-bold text-sm text-neon uppercase shadow-lg shadow-neon/10">U</div>
+    <div>
+      <span class="font-display font-semibold text-lg">USDT<span class="text-neon">Rewards</span></span>
+      <p id="user-name-label" class="text-[10px] text-gray-400 -mt-1 truncate max-w-[120px]"></p>
+    </div>
   </div>
   <div id="streak-pill" class="glass px-3 py-1.5 rounded-full flex items-center gap-1.5 text-sm font-medium">
     <span>🔥</span><span id="streak-count">0</span>

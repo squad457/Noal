@@ -10,10 +10,12 @@ Every protected endpoint depends on `get_current_user`, which:
 import hashlib
 import hmac
 import json
+import logging
 import time
 from urllib.parse import parse_qsl
 
 from fastapi import Header, HTTPException, status
+from aiogram import Bot
 
 from app.config import settings
 from app.database import get_db, get_settings
@@ -109,6 +111,22 @@ async def get_current_user(x_telegram_init_data: str = Header(..., alias="X-Tele
                             "UPDATE referrals SET total_commission = total_commission + ? WHERE referrer_id = ? AND referred_id = ?",
                             (fixed_reward, referred_by, telegram_id),
                         )
+
+                        # Send notification to referrer via bot chat
+                        try:
+                            from aiogram import Bot
+                            notif_bot = Bot(token=settings.BOT_TOKEN)
+                            await notif_bot.send_message(
+                                referred_by,
+                                f"🎉 **New Referral Joined!** 👥\n\n"
+                                f"👤 User: {tg_user.get('first_name', 'A friend')} joined using your referral link.\n"
+                                f"💰 Reward earned: **+{fixed_reward} USDT**!\n\n"
+                                f"Keep sharing your link to earn more!",
+                                parse_mode="Markdown"
+                            )
+                            await notif_bot.session.close()
+                        except Exception as e:
+                            logging.error(f"Failed to send referral notification to referrer {referred_by}: {e}")
 
                 # Signup bonus credited to the NEW user
                 if settings.REFERRAL_SIGNUP_BONUS > 0:
