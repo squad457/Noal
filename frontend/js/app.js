@@ -78,6 +78,8 @@ async function loadTabData(tab) {
       if (nameEl) nameEl.textContent = state.user.first_name || "";
     }
     renderActiveTab();
+    const splash = document.getElementById("splash");
+    if (splash) setTimeout(() => splash.classList.add("hide"), 400);
   } catch (err) {
     showToast(err.message, "error");
   }

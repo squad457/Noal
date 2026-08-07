@@ -100,13 +100,72 @@ h1, h2, h3, .font-display { font-family: 'Space Grotesk', sans-serif; }
   border: none;
 }
 .streak-dot.today {
-  border: 1.5px solid #10B981;
+  border-color: #10B981;
   color: #10B981;
 }
 
-/* --- Simple pulse for the ad reward button --- */
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
-  50% { box-shadow: 0 0 0 10px rgba(16,185,129,0); }
+/* --- Splash Screen Overlay --- */
+#splash {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: #0B0F19;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
 }
-.pulse { animation: pulse-glow 2s infinite; }
+#splash.hide {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.splash-core {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #10B981, #06B6D4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  color: #041014;
+  box-shadow: 0 0 35px rgba(16, 185, 129, 0.4);
+}
+.splash-ring {
+  position: absolute;
+  inset: -8px;
+  border-radius: 24px;
+  border: 2.5px solid transparent;
+  border-top-color: #10B981;
+  border-right-color: #06B6D4;
+  animation: spin 1.1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.splash-track {
+  width: 140px;
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  position: relative;
+}
+.splash-track i {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%; width: 50%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #10B981, #06B6D4);
+  animation: barSlide 1.2s ease-in-out infinite;
+}
+@keyframes barSlide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
