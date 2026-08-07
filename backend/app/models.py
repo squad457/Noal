@@ -45,6 +45,7 @@ class SettingsUpdate(BaseModel):
     ad_cooldown_seconds: int | None = None
     referral_commission_percent: float | None = None
     referral_signup_bonus: float | None = None
+    referral_fixed_reward: float | None = None
     min_withdrawal_usdt: float | None = None
     withdrawal_tiers: list[float] | None = None
     streak_rewards: list[float] | None = None

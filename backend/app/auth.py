@@ -89,7 +89,28 @@ async def get_current_user(x_telegram_init_data: str = Header(..., alias="X-Tele
                     "INSERT INTO referrals (referrer_id, referred_id) VALUES (?, ?)",
                     (referred_by, telegram_id),
                 )
-                # Signup bonus credited to the NEW user, commission comes later from their earnings
+                cfg = await get_settings(db)
+                fixed_reward = cfg["referral_fixed_reward"]
+                if fixed_reward > 0:
+                    ref_cursor = await db.execute("SELECT balance FROM users WHERE telegram_id = ?", (referred_by,))
+                    ref_row = await ref_cursor.fetchone()
+                    if ref_row:
+                        new_ref_balance = ref_row["balance"] + fixed_reward
+                        await db.execute(
+                            "UPDATE users SET balance = ?, total_earned = total_earned + ? WHERE telegram_id = ?",
+                            (new_ref_balance, fixed_reward, referred_by),
+                        )
+                        await db.execute(
+                            """INSERT INTO transactions (telegram_id, type, amount, balance_after, meta)
+                               VALUES (?, 'referral_bonus', ?, ?, ?)""",
+                            (referred_by, fixed_reward, new_ref_balance, json.dumps({"referred_id": telegram_id})),
+                        )
+                        await db.execute(
+                            "UPDATE referrals SET total_commission = total_commission + ? WHERE referrer_id = ? AND referred_id = ?",
+                            (fixed_reward, referred_by, telegram_id),
+                        )
+
+                # Signup bonus credited to the NEW user
                 if settings.REFERRAL_SIGNUP_BONUS > 0:
                     await db.execute(
                         "UPDATE users SET balance = balance + ?, total_earned = total_earned + ? WHERE telegram_id = ?",
@@ -97,7 +118,7 @@ async def get_current_user(x_telegram_init_data: str = Header(..., alias="X-Tele
                     )
                     await db.execute(
                         """INSERT INTO transactions (telegram_id, type, amount, balance_after, meta)
-                           VALUES (?, 'referral_bonus', ?, ?, ?)""",
+                           VALUES (?, 'signup_bonus', ?, ?, ?)""",
                         (telegram_id, settings.REFERRAL_SIGNUP_BONUS, settings.REFERRAL_SIGNUP_BONUS,
                          json.dumps({"referred_by": referred_by})),
                     )
