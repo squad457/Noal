@@ -70,7 +70,7 @@ async function loadTabData(tab) {
       const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
       if (avatarEl) {
         if (tgUser?.photo_url) {
-          avatarEl.innerHTML = `<img src="${tgUser.photo_url}" alt="Profile" class="w-full h-full object-cover" />`;
+          avatarEl.innerHTML = `<img src="${tgUser.photo_url}" alt="Profile" class="w-full h-full rounded-full object-cover" />`;
         } else {
           avatarEl.textContent = state.user.first_name?.[0]?.toUpperCase() || "U";
         }
