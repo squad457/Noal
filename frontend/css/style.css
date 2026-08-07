@@ -1,0 +1,112 @@
+* { -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Inter', sans-serif; }
+h1, h2, h3, .font-display { font-family: 'Space Grotesk', sans-serif; }
+
+/* --- Glassmorphism --- */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.glass-card {
+  background: linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 20px;
+}
+
+.glass-nav {
+  background: rgba(11, 15, 25, 0.85);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* --- Bottom nav buttons --- */
+.nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 0 8px;
+  color: #6B7280;
+  font-size: 11px;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+.nav-btn.active-nav { color: #10B981; }
+.nav-icon { width: 22px; height: 22px; }
+
+/* --- Buttons --- */
+.btn-primary {
+  background: linear-gradient(135deg, #10B981, #06B6D4);
+  color: #041014;
+  font-weight: 700;
+  border-radius: 16px;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.btn-primary:active { transform: scale(0.97); }
+.btn-primary:disabled { opacity: 0.4; pointer-events: none; }
+
+.btn-secondary {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.btn-secondary:active { transform: scale(0.97); }
+
+/* --- Glow / accents --- */
+.text-glow-green { text-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+.border-glow { box-shadow: 0 0 0 1px rgba(16,185,129,0.3), 0 0 24px rgba(16,185,129,0.15); }
+
+/* --- Skeleton loading --- */
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 37%, rgba(255,255,255,0.04) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+  border-radius: 12px;
+}
+@keyframes skeleton-loading {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* --- Toast --- */
+.toast-visible {
+  animation: toast-in 0.25s ease forwards;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* --- Streak dots --- */
+.streak-dot {
+  width: 28px; height: 28px;
+  border-radius: 999px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #6B7280;
+}
+.streak-dot.done {
+  background: linear-gradient(135deg, #10B981, #06B6D4);
+  color: #041014;
+  border: none;
+}
+.streak-dot.today {
+  border: 1.5px solid #10B981;
+  color: #10B981;
+}
+
+/* --- Simple pulse for the ad reward button --- */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(16,185,129,0); }
+}
+.pulse { animation: pulse-glow 2s infinite; }

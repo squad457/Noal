@@ -1,0 +1,132 @@
+"""
+Validates Telegram WebApp `initData` per Telegram's official algorithm:
+https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
+
+Every protected endpoint depends on `get_current_user`, which:
+1. Parses & HMAC-validates the initData string sent from the frontend.
+2. Rejects stale requests (replay-attack protection).
+3. Upserts the user row so the DB always reflects the latest Telegram profile.
+"""
+import hashlib
+import hmac
+import json
+import time
+from urllib.parse import parse_qsl
+
+from fastapi import Header, HTTPException, status
+
+from app.config import settings
+from app.database import get_db, get_settings
+
+
+def _validate_init_data(init_data: str) -> dict:
+    """Returns the parsed, verified initData fields. Raises HTTPException if invalid."""
+    try:
+        parsed = dict(parse_qsl(init_data, strict_parsing=True))
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Malformed initData")
+
+    received_hash = parsed.pop("hash", None)
+    if not received_hash:
+        raise HTTPException(status_code=401, detail="Missing hash in initData")
+
+    # Build the data-check-string: all fields except `hash`, sorted, joined with \n
+    data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(parsed.items()))
+
+    # secret_key = HMAC_SHA256("WebAppData", bot_token)
+    secret_key = hmac.new(b"WebAppData", settings.BOT_TOKEN.encode(), hashlib.sha256).digest()
+    computed_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+
+    if not hmac.compare_digest(computed_hash, received_hash):
+        raise HTTPException(status_code=401, detail="Invalid initData signature")
+
+    auth_date = int(parsed.get("auth_date", 0))
+    if time.time() - auth_date > settings.INIT_DATA_MAX_AGE_SECONDS:
+        raise HTTPException(status_code=401, detail="initData expired, please reopen the app")
+
+    return parsed
+
+
+async def get_current_user(x_telegram_init_data: str = Header(..., alias="X-Telegram-Init-Data")) -> dict:
+    """
+    FastAPI dependency. The frontend must send the raw `Telegram.WebApp.initData`
+    string in the `X-Telegram-Init-Data` header on every request.
+    Returns the user's DB row as a dict, creating it on first sight.
+    """
+    parsed = _validate_init_data(x_telegram_init_data)
+
+    user_json = parsed.get("user")
+    if not user_json:
+        raise HTTPException(status_code=401, detail="No user field in initData")
+    tg_user = json.loads(user_json)
+    telegram_id = tg_user["id"]
+
+    # start_param carries the referrer's telegram_id when the user opened the app
+    # via a referral deep link (t.me/bot?startapp=REFERRER_ID)
+    start_param = parsed.get("start_param")
+
+    async with get_db() as db:
+        cursor = await db.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
+        row = await cursor.fetchone()
+
+        if row is None:
+            referred_by = None
+            if start_param and start_param.isdigit() and int(start_param) != telegram_id:
+                ref_check = await db.execute(
+                    "SELECT telegram_id FROM users WHERE telegram_id = ?", (int(start_param),)
+                )
+                if await ref_check.fetchone():
+                    referred_by = int(start_param)
+
+            await db.execute(
+                """INSERT INTO users (telegram_id, username, first_name, referred_by)
+                   VALUES (?, ?, ?, ?)""",
+                (telegram_id, tg_user.get("username"), tg_user.get("first_name"), referred_by),
+            )
+
+            if referred_by:
+                await db.execute(
+                    "INSERT INTO referrals (referrer_id, referred_id) VALUES (?, ?)",
+                    (referred_by, telegram_id),
+                )
+                # Signup bonus credited to the NEW user, commission comes later from their earnings
+                if settings.REFERRAL_SIGNUP_BONUS > 0:
+                    await db.execute(
+                        "UPDATE users SET balance = balance + ?, total_earned = total_earned + ? WHERE telegram_id = ?",
+                        (settings.REFERRAL_SIGNUP_BONUS, settings.REFERRAL_SIGNUP_BONUS, telegram_id),
+                    )
+                    await db.execute(
+                        """INSERT INTO transactions (telegram_id, type, amount, balance_after, meta)
+                           VALUES (?, 'referral_bonus', ?, ?, ?)""",
+                        (telegram_id, settings.REFERRAL_SIGNUP_BONUS, settings.REFERRAL_SIGNUP_BONUS,
+                         json.dumps({"referred_by": referred_by})),
+                    )
+
+            await db.commit()
+            cursor = await db.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
+            row = await cursor.fetchone()
+        else:
+            # Keep username/first_name fresh in case the user changed them on Telegram
+            await db.execute(
+                "UPDATE users SET username = ?, first_name = ? WHERE telegram_id = ?",
+                (tg_user.get("username"), tg_user.get("first_name"), telegram_id),
+            )
+            await db.commit()
+
+        if row["is_banned"]:
+            raise HTTPException(status_code=403, detail="This account has been suspended")
+
+        # Maintenance mode blocks everyone except admins, so the team can still test/manage live
+        if telegram_id not in settings.ADMIN_IDS:
+            cfg = await get_settings(db)
+            if cfg["maintenance_mode"]:
+                raise HTTPException(status_code=503, detail=cfg["maintenance_message"] or "Under maintenance, please check back soon")
+
+        return dict(row)
+
+
+async def verify_admin(x_admin_key: str = Header(..., alias="X-Admin-Key")) -> bool:
+    """Simple shared-secret guard for admin endpoints. Swap for real admin auth in production."""
+    if not hmac.compare_digest(x_admin_key, settings.ADMIN_API_KEY):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid admin key")
+    return True

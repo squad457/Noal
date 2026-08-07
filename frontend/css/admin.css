@@ -1,0 +1,129 @@
+/* Extends style.css for the admin dashboard only. */
+
+/* ── Admin top bar ── */
+.admin-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 10px;
+}
+.admin-brand { display: flex; align-items: center; gap: 10px; }
+.admin-brand .mark {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: linear-gradient(135deg, #10B981, #06B6D4);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; color: #041014; font-family: 'Space Grotesk', sans-serif;
+}
+
+/* ── Sub-nav pills (scrollable on mobile) ── */
+.admin-nav {
+  display: flex; gap: 8px; overflow-x: auto; padding: 4px 20px 14px;
+  scrollbar-width: none;
+}
+.admin-nav::-webkit-scrollbar { display: none; }
+.admin-nav button {
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #9CA3AF;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  white-space: nowrap;
+}
+.admin-nav button.active {
+  color: #041014;
+  background: linear-gradient(135deg, #10B981, #06B6D4);
+  border-color: transparent;
+}
+
+/* ── Stat grid ── */
+.stat-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+}
+.stat-card {
+  padding: 14px; border-radius: 16px;
+}
+.stat-card .v { font-family: 'Space Grotesk', sans-serif; font-size: 1.4rem; font-weight: 700; }
+.stat-card .l { font-size: 11px; color: #9CA3AF; margin-top: 2px; }
+
+/* ── Section headers ── */
+.admin-sect {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px; font-weight: 700; color: #9CA3AF;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin: 20px 0 10px;
+}
+
+/* ── Form controls (reuses glass-card wrapper) ── */
+.admin-field { margin-bottom: 12px; }
+.admin-field label {
+  display: block; font-size: 11px; color: #9CA3AF; margin-bottom: 5px;
+  text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+}
+.admin-field input, .admin-field select, .admin-field textarea {
+  width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+  color: #fff; padding: 11px 13px; border-radius: 12px; font-size: 13.5px;
+  font-family: 'Inter', sans-serif;
+}
+.admin-field input:focus, .admin-field select:focus, .admin-field textarea:focus {
+  outline: none; border-color: rgba(16,185,129,0.5); box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
+}
+.admin-field .hint { font-size: 11px; color: #6B7280; margin-top: 4px; line-height: 1.4; }
+
+/* ── Toggle switch (for on/off settings) ── */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 2px 0 12px;
+}
+.toggle-row .toggle-label { font-size: 13px; font-weight: 600; }
+.toggle-row .toggle-sub { font-size: 11px; color: #6B7280; margin-top: 2px; }
+.switch { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch .slider {
+  position: absolute; inset: 0; border-radius: 999px; cursor: pointer;
+  background: rgba(255,255,255,0.12); transition: background 0.2s ease;
+}
+.switch .slider::before {
+  content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px;
+  border-radius: 50%; background: #fff; transition: transform 0.2s ease;
+}
+.switch input:checked + .slider { background: linear-gradient(135deg, #10B981, #06B6D4); }
+.switch input:checked + .slider::before { transform: translateX(18px); }
+
+/* ── Rows (users / withdrawals / tasks lists) ── */
+.admin-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.admin-row:last-child { border-bottom: none; }
+.admin-row .main { min-width: 0; flex: 1; }
+.admin-row .title { font-size: 13.5px; font-weight: 600; }
+.admin-row .sub { font-size: 11.5px; color: #9CA3AF; margin-top: 2px; }
+
+/* ── Badges ── */
+.badge { font-size: 10.5px; font-weight: 700; padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+.badge.pending { background: rgba(234,179,8,0.15); color: #EAB308; }
+.badge.approved { background: rgba(16,185,129,0.15); color: #10B981; }
+.badge.rejected { background: rgba(239,68,68,0.15); color: #EF4444; }
+.badge.active { background: rgba(16,185,129,0.15); color: #10B981; }
+.badge.inactive { background: rgba(107,114,128,0.15); color: #9CA3AF; }
+.badge.banned { background: rgba(239,68,68,0.15); color: #EF4444; }
+
+/* ── Small action buttons ── */
+.btn-xs {
+  padding: 7px 12px; border-radius: 10px; font-size: 11.5px; font-weight: 700;
+  border: none; flex-shrink: 0;
+}
+.btn-xs.approve { background: rgba(16,185,129,0.15); color: #10B981; }
+.btn-xs.reject { background: rgba(239,68,68,0.15); color: #EF4444; }
+.btn-xs.ghost { background: rgba(255,255,255,0.06); color: #E5E7EB; border: 1px solid rgba(255,255,255,0.1); }
+.btn-xs.ghost.active-filter {
+  background: linear-gradient(135deg, #10B981, #06B6D4);
+  color: #041014; border-color: transparent;
+}
+
+/* ── Login gate ── */
+.admin-login {
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 24px;
+}
