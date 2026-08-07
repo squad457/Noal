@@ -4,7 +4,7 @@
  *
  * Set API_BASE to your Railway backend URL after deployment.
  */
-const API_BASE = "https://your-backend.up.railway.app"; // <-- replace after deploying to Railway
+const API_BASE = "https://noal-production.up.railway.app";
 
 const tg = window.Telegram?.WebApp;
 const initData = tg?.initData || "";
