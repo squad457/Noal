@@ -36,5 +36,6 @@ async def referral_stats(user: dict = Depends(get_current_user)):
         "total_referrals": total_referrals,
         "total_commission_earned": round(total_commission, 4),
         "commission_percent": cfg["referral_commission_percent"],
+        "referral_fixed_reward": cfg["referral_fixed_reward"],
         "recent_referrals": recent,
     }

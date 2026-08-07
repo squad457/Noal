@@ -168,8 +168,8 @@ function renderInvite(state) {
   return `
     <div class="glass-card p-6 mt-2 text-center border-glow">
       <p class="text-3xl mb-2">🎁</p>
-      <h3 class="font-display font-semibold text-lg mb-1">Invite & Earn ${referral.commission_percent}%</h3>
-      <p class="text-sm text-gray-400">Earn ${referral.commission_percent}% of everything your friends make, forever.</p>
+      <h3 class="font-display font-semibold text-lg mb-1">Invite & Earn ${fmtUsd(referral.referral_fixed_reward)} + ${referral.commission_percent}%</h3>
+      <p class="text-sm text-gray-400">Get ${fmtUsd(referral.referral_fixed_reward)} per invite + earn ${referral.commission_percent}% commission on their activity!</p>
     </div>
 
     <div class="grid grid-cols-2 gap-3 mt-4">
