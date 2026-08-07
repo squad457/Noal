@@ -172,7 +172,6 @@ async def ad_status(user: dict = Depends(get_current_user)):
         watched_today = (await cursor.fetchone())["c"]
     return {
         "ads_enabled": cfg["ads_enabled"],
-        "adsgram_block_id": cfg["adsgram_block_id"],
         "watched_today": watched_today,
         "daily_limit": cfg["ad_daily_limit"],
         "reward_per_ad": cfg["ad_reward_usdt"],

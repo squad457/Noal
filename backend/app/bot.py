@@ -23,7 +23,7 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=settings.BOT_TOKEN)
 dp = Dispatcher()
 
-MINI_APP_URL = f"https://t.me/{settings.BOT_USERNAME}/{settings.MINI_APP_SHORT_NAME}"
+MINI_APP_URL = f"https://t.me/{settings.BOT_USERNAME}/app"  # replace 'app' with your Mini App's short name
 
 
 def _webapp_keyboard(start_param: str | None = None) -> InlineKeyboardMarkup:
