@@ -14,10 +14,10 @@ async function getAdController() {
   const blockId = status.adsgram_block_id;
 
   if (!blockId) {
-    throw new Error("Adsgram Block ID isn't set yet — set it in the admin dashboard's Settings tab");
+    throw new Error("Ads are currently unavailable. Please try again later.");
   }
   if (!window.Adsgram) {
-    throw new Error("Ad SDK not available");
+    throw new Error("Ad system is not available right now. Please try again.");
   }
 
   if (!AdController || cachedBlockId !== blockId) {
@@ -38,6 +38,6 @@ async function showRewardedAd() {
     // Adsgram resolves the promise only on a fully-watched, reward-eligible view.
     return result?.reward_event || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   } catch (err) {
-    throw new Error(err?.description || "Ad was skipped or failed to load");
+    throw new Error(err?.description || "Ad was skipped or failed to load. Please try again.");
   }
 }
