@@ -59,16 +59,16 @@ function renderEarn(state) {
 
   const adSection = adStatus
     ? `
-      <div class="glass-card p-4 flex items-center justify-between border-glow">
-        <div class="flex items-center gap-3 min-w-0 pr-3">
-          <div class="w-10 h-10 rounded-xl bg-neon/10 flex items-center justify-center text-lg shrink-0">🎬</div>
+      <div class="glass-card p-3.5 flex items-center justify-between border-glow">
+        <div class="flex items-center gap-3 min-w-0 pr-2">
+          <div class="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center text-base shrink-0">🎬</div>
           <div class="min-w-0">
-            <p class="font-semibold text-sm truncate">Watch Ad</p>
-            <p class="text-xs text-neon">${fmtUsd(adStatus.reward_per_ad)} <span class="text-gray-500">• ${adStatus.watched_today}/${adStatus.daily_limit} done</span></p>
+            <p class="font-semibold text-xs tracking-wide">Watch Ad for USDT</p>
+            <p class="text-[11px] text-neon mt-0.5">${fmtUsd(adStatus.reward_per_ad)} <span class="text-gray-500">• ${adStatus.watched_today}/${adStatus.daily_limit} today</span></p>
           </div>
         </div>
-        <button id="btn-watch-ad" class="btn-task shrink-0 ${adStatus.watched_today >= adStatus.daily_limit ? "btn-secondary opacity-40 pointer-events-none" : "btn-primary"} px-4 py-2 text-xs font-semibold">
-          ${adStatus.watched_today >= adStatus.daily_limit ? "✓ Limit" : "▶ Watch"}
+        <button id="btn-watch-ad" class="btn-task shrink-0 ${adStatus.watched_today >= adStatus.daily_limit ? "btn-secondary opacity-40 pointer-events-none" : "btn-primary"} px-3.5 py-2 text-xs font-semibold">
+          ${adStatus.watched_today >= adStatus.daily_limit ? "✓ Done" : "▶ Watch"}
         </button>
       </div>
     `
@@ -90,8 +90,8 @@ function renderEarn(state) {
     : skeletonBlock();
 
   return `
-    <div class="mt-2">${adSection}</div>
-    <h3 class="font-display font-semibold mt-5 mb-3">Task</h3>
+    <div class="mt-1">${adSection}</div>
+    <h3 class="font-display font-semibold mt-4 mb-2.5">Task</h3>
     <div class="space-y-2.5">${tasks && tasks.length === 0 ? emptyState("No tasks right now — check back soon.") : taskList}</div>
   `;
 }
