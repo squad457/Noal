@@ -133,8 +133,8 @@ function renderWallet(state) {
       <input id="input-withdraw-amount" type="number" step="0.01" placeholder="e.g. 15.50"
         class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-3 outline-none focus:border-neon/50" />
 
-      <label class="text-xs text-gray-400 mb-1.5 block">Binance Pay ID or USDT Wallet Address</label>
-      <input id="input-payout-id" type="text" placeholder="e.g. 123456789"
+      <label class="text-xs text-gray-400 mb-1.5 block">Binance Pay ID or USDT (BEP20) Wallet Address</label>
+      <input id="input-payout-id" type="text" placeholder="e.g. 123456789 or 0x..."
         value="${user.binance_pay_id || ""}"
         class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-4 outline-none focus:border-neon/50" />
 

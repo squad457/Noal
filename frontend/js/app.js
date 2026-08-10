@@ -152,7 +152,7 @@ document.addEventListener("click", async (e) => {
     const amount = parseFloat(amtInput?.value || selectedTier?.dataset?.amount);
     const payoutId = document.getElementById("input-payout-id").value.trim();
     if (!amount || isNaN(amount) || amount <= 0) { showToast("Enter or select a valid withdrawal amount", "error"); return; }
-    if (!payoutId) { showToast("Enter your Binance Pay ID or wallet address", "error"); return; }
+    if (!payoutId) { showToast("Enter your Binance Pay ID or USDT (BEP20) address", "error"); return; }
 
     try {
       await Api.withdraw({
