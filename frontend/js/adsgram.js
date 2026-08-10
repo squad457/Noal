@@ -38,6 +38,7 @@ async function showRewardedAd() {
     // Adsgram resolves the promise only on a fully-watched, reward-eligible view.
     return result?.reward_event || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   } catch (err) {
-    throw new Error(err?.description || "Ad was skipped or failed to load. Please try again.");
+    const errMsg = err?.description || err?.message || (typeof err === 'string' ? err : null);
+    throw new Error(errMsg ? `Adsgram Error: ${errMsg}` : "Ad was skipped or failed to load. Please try again.");
   }
 }
