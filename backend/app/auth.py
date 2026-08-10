@@ -15,7 +15,7 @@ import time
 from urllib.parse import parse_qsl
 
 from fastapi import Header, HTTPException, status
-from aiogram import Bot
+from aiogram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.config import settings
 from app.database import get_db, get_settings
@@ -142,6 +142,32 @@ async def get_current_user(x_telegram_init_data: str = Header(..., alias="X-Tele
                     )
 
             await db.commit()
+
+            # Send welcome message & Mini App button to NEW user in their bot chat
+            try:
+                welcome_bot = Bot(token=settings.BOT_TOKEN)
+                mini_app_url = f"https://t.me/{settings.BOT_USERNAME}/{settings.MINI_APP_SHORT_NAME}"
+                if referred_by:
+                    mini_app_url += f"?startapp={referred_by}"
+                kb = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="🚀 Open App & Earn USDT", url=mini_app_url)]
+                ])
+                welcome_text = (
+                    f"👋 **Welcome {tg_user.get('first_name', '')}!**\n\n"
+                    f"💰 Welcome to **USDT Rewards**!\n"
+                    f"You have successfully joined and activated your account.\n\n"
+                    f"Tap the button below anytime to open the app and start earning!"
+                )
+                await welcome_bot.send_message(
+                    telegram_id,
+                    welcome_text,
+                    reply_markup=kb,
+                    parse_mode="Markdown"
+                )
+                await welcome_bot.session.close()
+            except Exception as e:
+                logging.error(f"Failed to send welcome message to new user {telegram_id}: {e}")
+
             cursor = await db.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
             row = await cursor.fetchone()
         else:
