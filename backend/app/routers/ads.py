@@ -159,6 +159,24 @@ async def adsgram_postback(
     return {"status": "ok"}
 
 
+@router.get("/p")
+async def adsgram_short_postback(
+    userid: int = Query(..., description="Adsgram macro user id"),
+):
+    """
+    Shorter postback URL containing [userId] for Adsgram dashboard:
+    https://noal-production.up.railway.app/api/ads/p?userid=[userId]
+    """
+    async with get_db() as db:
+        user_cursor = await db.execute("SELECT telegram_id FROM users WHERE telegram_id = ?", (userid,))
+        if not await user_cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Unknown user")
+        event_id = f"adsgram_p_{int(datetime.now(timezone.utc).timestamp())}_{userid}"
+        await _credit_ad_reward(db, userid, event_id)
+        await db.commit()
+    return {"status": "ok"}
+
+
 @router.get("/status")
 async def ad_status(user: dict = Depends(get_current_user)):
     """Frontend polls this before showing the 'Watch Ad' button to grey it out during cooldown/limit."""
