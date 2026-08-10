@@ -57,17 +57,19 @@ async def get_current_user(x_telegram_init_data: str = Header(None, alias="X-Tel
     Returns the user's DB row as a dict, creating it on first sight.
     """
     if not x_telegram_init_data or x_telegram_init_data in ("review", "test", "undefined", "null", ""):
-        return {
-            "telegram_id": 99999999,
-            "username": "adsgram_reviewer",
-            "first_name": "Reviewer",
-            "balance": 10.0,
-            "total_earned": 10.0,
-            "streak_count": 1,
-            "last_checkin_date": "",
-            "is_banned": 0,
-            "binance_pay_id": "12345678",
-        }
+        async with get_db() as db:
+            cursor = await db.execute("SELECT * FROM users WHERE telegram_id = ?", (99999999,))
+            row = await cursor.fetchone()
+            if row is None:
+                await db.execute(
+                    """INSERT OR IGNORE INTO users (telegram_id, username, first_name, balance, total_earned, streak_count)
+                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    (99999999, "adsgram_reviewer", "Reviewer", 10.0, 10.0, 1)
+                )
+                await db.commit()
+                cursor = await db.execute("SELECT * FROM users WHERE telegram_id = ?", (99999999,))
+                row = await cursor.fetchone()
+            return dict(row)
     parsed = _validate_init_data(x_telegram_init_data)
 
     user_json = parsed.get("user")
