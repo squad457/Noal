@@ -15,7 +15,8 @@ import time
 from urllib.parse import parse_qsl
 
 from fastapi import Header, HTTPException, status
-from aiogram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram import Bot
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.config import settings
 from app.database import get_db, get_settings
