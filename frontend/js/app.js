@@ -206,8 +206,15 @@ document.addEventListener("click", async (e) => {
 (function init() {
   const BOT_APP_URL = "https://t.me/UsdtReward1bot/app";
   if (!window.Telegram?.WebApp?.initData) {
-    window.location.href = BOT_APP_URL;
-    return;
+    const gate = document.createElement("div");
+    gate.className = "fixed inset-0 z-50 bg-base/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center";
+    gate.innerHTML = `
+      <div class="w-16 h-16 rounded-2xl bg-neon/10 flex items-center justify-center text-2xl mb-4">🤖</div>
+      <h2 class="font-display text-lg font-bold mb-2">Open in Telegram</h2>
+      <p class="text-xs text-gray-400 max-w-xs mb-6">This app is designed to run inside Telegram Mini Apps. Tap below to launch.</p>
+      <a href="${BOT_APP_URL}" class="btn-primary px-6 py-3 text-sm font-semibold rounded-xl text-white">🚀 Launch in Telegram</a>
+    `;
+    document.body.appendChild(gate);
   }
 
   tg?.ready();
