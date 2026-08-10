@@ -204,6 +204,12 @@ document.addEventListener("click", async (e) => {
 
 // ---------- Boot ----------
 (function init() {
+  const BOT_APP_URL = "https://t.me/UsdtReward1bot/app";
+  if (!window.Telegram?.WebApp?.initData) {
+    window.location.href = BOT_APP_URL;
+    return;
+  }
+
   tg?.ready();
   tg?.expand();
   tg?.setHeaderColor?.("#0B0F19");
