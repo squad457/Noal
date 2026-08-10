@@ -133,6 +133,29 @@ document.addEventListener("click", async (e) => {
     return;
   }
 
+  // Select payout method
+  const methodBtn = e.target.closest(".method-btn");
+  if (methodBtn) {
+    const method = methodBtn.dataset.method;
+    state.selectedMethod = method;
+    document.querySelectorAll(".method-btn").forEach(b => {
+      const active = b === methodBtn;
+      b.className = `method-btn glass-card py-2.5 text-xs font-semibold text-center ${active ? 'border-neon text-neon bg-neon/10' : 'text-gray-400'}`;
+    });
+    const label = document.getElementById("payout-label");
+    const input = document.getElementById("input-payout-id");
+    if (label && input) {
+      if (method === 'binance_pay') {
+        label.textContent = "Enter Binance Pay ID";
+        input.placeholder = "e.g. 123456789";
+      } else {
+        label.textContent = "Enter USDT (BEP20) Wallet Address";
+        input.placeholder = "e.g. 0x...";
+      }
+    }
+    return;
+  }
+
   // Withdrawal tier selection
   const tierBtn = e.target.closest(".tier-btn");
   if (tierBtn) {
@@ -157,7 +180,7 @@ document.addEventListener("click", async (e) => {
     try {
       await Api.withdraw({
         amount: amount,
-        method: "binance_pay",
+        method: state.selectedMethod || "binance_pay",
         payout_id: payoutId,
       });
       showToast("Withdrawal submitted!");

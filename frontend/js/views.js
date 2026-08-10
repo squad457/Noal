@@ -117,6 +117,9 @@ function renderWallet(state) {
       `).join("")
     : "";
 
+  const selectedMethod = state.selectedMethod || 'binance_pay';
+  const isBinance = selectedMethod === 'binance_pay';
+
   return `
     <div class="glass-card p-5 mt-2 text-center">
       <p class="text-sm text-gray-400">Available to Withdraw</p>
@@ -133,8 +136,14 @@ function renderWallet(state) {
       <input id="input-withdraw-amount" type="number" step="0.01" placeholder="e.g. 15.50"
         class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-3 outline-none focus:border-neon/50" />
 
-      <label class="text-xs text-gray-400 mb-1.5 block">Binance Pay ID or USDT (BEP20) Wallet Address</label>
-      <input id="input-payout-id" type="text" placeholder="e.g. 123456789 or 0x..."
+      <label class="text-xs text-gray-400 mb-1.5 block">Select Payout Method</label>
+      <div class="grid grid-cols-2 gap-2 mb-3">
+        <button data-method="binance_pay" class="method-btn glass-card py-2.5 text-xs font-semibold text-center ${isBinance ? 'border-neon text-neon bg-neon/10' : 'text-gray-400'}">Binance Pay ID</button>
+        <button data-method="usdt_address" class="method-btn glass-card py-2.5 text-xs font-semibold text-center ${!isBinance ? 'border-neon text-neon bg-neon/10' : 'text-gray-400'}">USDT (BEP20)</button>
+      </div>
+
+      <label class="text-xs text-gray-400 mb-1.5 block" id="payout-label">${isBinance ? 'Enter Binance Pay ID' : 'Enter USDT (BEP20) Wallet Address'}</label>
+      <input id="input-payout-id" type="text" placeholder="${isBinance ? 'e.g. 123456789' : 'e.g. 0x...'}"
         value="${user.binance_pay_id || ""}"
         class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-4 outline-none focus:border-neon/50" />
 
