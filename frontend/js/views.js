@@ -59,14 +59,17 @@ function renderEarn(state) {
 
   const adSection = adStatus
     ? `
-      <div class="glass-card p-6 text-center border-glow">
-        <p class="text-3xl mb-2">🎬</p>
-        <h3 class="font-display font-semibold text-lg mb-1">Watch a Video Ad</h3>
-        <p class="text-sm text-gray-400 mb-4">Earn <span class="text-neon font-semibold">${fmtUsd(adStatus.reward_per_ad)}</span> per completed view</p>
-        <button id="btn-watch-ad" class="w-full btn-primary py-3.5 text-sm ${adStatus.watched_today >= adStatus.daily_limit ? "opacity-40 pointer-events-none" : ""}">
-          ${adStatus.watched_today >= adStatus.daily_limit ? "Daily limit reached" : "▶ Watch Ad Now"}
+      <div class="glass-card p-4 flex items-center justify-between border-glow">
+        <div class="flex items-center gap-3 min-w-0 pr-3">
+          <div class="w-10 h-10 rounded-xl bg-neon/10 flex items-center justify-center text-lg shrink-0">🎬</div>
+          <div class="min-w-0">
+            <p class="font-semibold text-sm truncate">Watch Ad</p>
+            <p class="text-xs text-neon">${fmtUsd(adStatus.reward_per_ad)} <span class="text-gray-500">• ${adStatus.watched_today}/${adStatus.daily_limit} done</span></p>
+          </div>
+        </div>
+        <button id="btn-watch-ad" class="btn-task shrink-0 ${adStatus.watched_today >= adStatus.daily_limit ? "btn-secondary opacity-40 pointer-events-none" : "btn-primary"} px-4 py-2 text-xs font-semibold">
+          ${adStatus.watched_today >= adStatus.daily_limit ? "✓ Limit" : "▶ Watch"}
         </button>
-        <p class="text-xs text-gray-500 mt-3">${adStatus.watched_today} / ${adStatus.daily_limit} watched today</p>
       </div>
     `
     : skeletonBlock();
@@ -88,7 +91,7 @@ function renderEarn(state) {
 
   return `
     <div class="mt-2">${adSection}</div>
-    <h3 class="font-display font-semibold mt-6 mb-3">Custom Tasks</h3>
+    <h3 class="font-display font-semibold mt-5 mb-3">Task</h3>
     <div class="space-y-2.5">${tasks && tasks.length === 0 ? emptyState("No tasks right now — check back soon.") : taskList}</div>
   `;
 }
