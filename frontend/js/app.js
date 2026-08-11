@@ -140,6 +140,13 @@ document.addEventListener("click", async (e) => {
     return;
   }
 
+  // Tap an individual scratch card to reveal it
+  const scratchCell = e.target.closest(".scratch-cell.armed");
+  if (scratchCell) {
+    handleScratchCellTap(Number(scratchCell.dataset.cell));
+    return;
+  }
+
   // Complete a custom task: open the link, then mark complete
   const taskBtn = e.target.closest(".btn-task");
   if (taskBtn) {
