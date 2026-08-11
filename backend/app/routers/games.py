@@ -105,12 +105,23 @@ async def _consume_ad_unlock(db, telegram_id: int, game_type: str, reward_event:
 
 
 async def _credit(db, telegram_id: int, game_type: str, reward: float, used_ad: bool, meta: dict):
+    # Always log the play itself (game_events), since daily-limit counting
+    # (_plays_today) depends on this row existing regardless of the outcome.
     await db.execute(
         "INSERT INTO game_events (telegram_id, game_type, amount, used_ad, meta) VALUES (?, ?, ?, ?, ?)",
         (telegram_id, game_type, reward, 1 if used_ad else 0, json.dumps(meta)),
     )
     user_cursor = await db.execute("SELECT balance FROM users WHERE telegram_id = ?", (telegram_id,))
     current_balance = (await user_cursor.fetchone())["balance"]
+
+    # A 0-reward round (e.g. a scratch card with no matching diamonds) must
+    # NOT create a "_reward" transaction — the transaction history only shows
+    # the type's label (e.g. "Scratch card win"), not the amount context, so
+    # logging a 0-amount reward row there would visually read as a win that
+    # never happened. Balance is unaffected either way, so just skip both.
+    if reward <= 0:
+        return current_balance
+
     new_balance = current_balance + reward
     await db.execute(
         "UPDATE users SET balance = ?, total_earned = total_earned + ? WHERE telegram_id = ?",
