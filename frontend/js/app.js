@@ -34,6 +34,42 @@ function showToast(message, type = "success") {
   setTimeout(() => { toast.className = "fixed left-1/2 -translate-x-1/2 bottom-24 z-50 hidden"; }, 2500);
 }
 
+// Preloads an image before it ever touches the DOM, so the avatar shows up
+// fully-formed the instant it appears instead of popping in a beat later
+// (which is what let the plain background flash behind it). Bounded by a
+// timeout so a slow/broken image can never hang the app.
+function preloadImage(src, timeoutMs = 1500) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok) => { if (!settled) { settled = true; resolve(ok); } };
+    const img = new Image();
+    img.onload = () => finish(true);
+    img.onerror = () => finish(false);
+    img.src = src;
+    setTimeout(() => finish(false), timeoutMs);
+  });
+}
+
+async function setAvatar(user) {
+  const avatarEl = document.getElementById("user-avatar");
+  const nameEl = document.getElementById("user-name-label");
+  if (!avatarEl) return;
+
+  if (user?.avatar_url) {
+    const src = `${API_BASE}${user.avatar_url}`;
+    const loaded = await preloadImage(src);
+    if (loaded) {
+      avatarEl.innerHTML = `<img src="${src}" alt="Profile" />`;
+    } else {
+      avatarEl.textContent = user.first_name?.[0]?.toUpperCase() || "U";
+    }
+  } else {
+    avatarEl.textContent = user?.first_name?.[0]?.toUpperCase() || "U";
+  }
+
+  if (nameEl) nameEl.textContent = user?.first_name || "";
+}
+
 function renderActiveTab() {
   const el = views[state.activeTab]();
   el.innerHTML = renderers[state.activeTab](state);
@@ -75,16 +111,10 @@ async function loadTabData(tab) {
     }
     document.getElementById("streak-count").textContent = state.user?.streak_count ?? 0;
     if (state.user) {
-      const avatarEl = document.getElementById("user-avatar");
-      const nameEl = document.getElementById("user-name-label");
-      if (avatarEl) {
-        if (state.user.avatar_url) {
-          avatarEl.innerHTML = `<img src="${API_BASE}${state.user.avatar_url}" alt="Profile" class="w-full h-full rounded-full object-cover" />`;
-        } else {
-          avatarEl.textContent = state.user.first_name?.[0]?.toUpperCase() || "U";
-        }
-      }
-      if (nameEl) nameEl.textContent = state.user.first_name || "";
+      // Awaited so the splash screen (below) never hides before the avatar
+      // is actually ready to show — that gap was what let the header's
+      // bare background be visible for a moment on open.
+      await setAvatar(state.user);
     }
     renderActiveTab();
     const splash = document.getElementById("splash");

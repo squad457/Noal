@@ -1,4 +1,6 @@
+import asyncio
 import json
+import logging
 from datetime import datetime, timedelta, timezone
 
 import aiohttp
@@ -13,32 +15,67 @@ router = APIRouter(prefix="/api/user", tags=["user"])
 
 PHOTO_CACHE_TTL = timedelta(hours=6)
 
+# In-memory cache of downloaded avatar bytes, keyed by Telegram's file_path.
+# file_path only changes when the user's actual photo changes (see
+# _refresh_avatar_if_stale), so it's a safe cache key — no TTL needed here,
+# just a size cap so it can't grow unbounded on a long-running process.
+_avatar_bytes_cache: dict[str, tuple[bytes, str]] = {}
+_AVATAR_CACHE_MAX = 500
+
 
 def _today_utc() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
-async def _refresh_avatar_if_stale(db, user: dict) -> dict:
-    """Re-checks the user's Telegram profile photo at most once per PHOTO_CACHE_TTL
-    and keeps the cached file_path in sync. Returns the (possibly updated) user dict."""
+def _is_avatar_stale(user: dict) -> bool:
     synced_at = user.get("photo_synced_at")
-    is_stale = True
-    if synced_at:
-        try:
-            is_stale = datetime.now(timezone.utc) - datetime.fromisoformat(synced_at).replace(tzinfo=timezone.utc) > PHOTO_CACHE_TTL
-        except ValueError:
-            is_stale = True
+    if not synced_at:
+        return True
+    try:
+        return datetime.now(timezone.utc) - datetime.fromisoformat(synced_at).replace(tzinfo=timezone.utc) > PHOTO_CACHE_TTL
+    except ValueError:
+        return True
 
-    if is_stale:
-        file_path = await fetch_avatar_file_path(user["telegram_id"])
-        now = datetime.now(timezone.utc).isoformat()
+
+async def _write_avatar_refresh(telegram_id: int, file_path: str | None) -> None:
+    now = datetime.now(timezone.utc).isoformat()
+    async with get_db() as db:
         await db.execute(
             "UPDATE users SET photo_file_path = ?, photo_synced_at = ? WHERE telegram_id = ?",
-            (file_path, now, user["telegram_id"]),
+            (file_path, now, telegram_id),
         )
         await db.commit()
-        user = {**user, "photo_file_path": file_path, "photo_synced_at": now}
 
+
+async def _background_refresh_avatar(telegram_id: int) -> None:
+    """Fire-and-forget refresh used once a user already has *some* cached
+    avatar to show. Runs after the response has gone out, so a slow Telegram
+    Bot API round trip never delays app open."""
+    try:
+        file_path = await fetch_avatar_file_path(telegram_id)
+        await _write_avatar_refresh(telegram_id, file_path)
+    except Exception as e:
+        logging.warning(f"Background avatar refresh failed for {telegram_id}: {e}")
+
+
+async def _refresh_avatar_if_stale(user: dict) -> dict:
+    """Keeps the cached Telegram photo file_path in sync, at most once per
+    PHOTO_CACHE_TTL. Only the very first sync for a user (no cached photo to
+    fall back to yet) blocks on the Telegram Bot API call; every later
+    refresh happens in the background so /sync — and therefore app open —
+    is never held up waiting on it."""
+    if not _is_avatar_stale(user):
+        return user
+
+    if user.get("photo_synced_at") is None:
+        # Nothing cached yet, so there's no fast fallback to show — worth
+        # the wait just this once.
+        file_path = await fetch_avatar_file_path(user["telegram_id"])
+        now = datetime.now(timezone.utc).isoformat()
+        await _write_avatar_refresh(user["telegram_id"], file_path)
+        return {**user, "photo_file_path": file_path, "photo_synced_at": now}
+
+    asyncio.create_task(_background_refresh_avatar(user["telegram_id"]))
     return user
 
 
@@ -50,7 +87,8 @@ async def sync_user(user: dict = Depends(get_current_user)):
     """
     async with get_db() as db:
         cfg = await get_settings(db)
-        user = await _refresh_avatar_if_stale(db, user)
+
+    user = await _refresh_avatar_if_stale(user)
 
     return {
         "telegram_id": user["telegram_id"],
@@ -84,13 +122,22 @@ async def get_avatar(telegram_id: int):
     if not row or not row["photo_file_path"]:
         raise HTTPException(status_code=404, detail="No profile photo on file")
 
-    file_url = f"https://api.telegram.org/file/bot{env_settings.BOT_TOKEN}/{row['photo_file_path']}"
-    async with aiohttp.ClientSession() as session:
-        async with session.get(file_url) as resp:
-            if resp.status != 200:
-                raise HTTPException(status_code=404, detail="Profile photo unavailable")
-            image_bytes = await resp.read()
-            content_type = resp.headers.get("Content-Type", "image/jpeg")
+    file_path = row["photo_file_path"]
+    cached = _avatar_bytes_cache.get(file_path)
+    if cached:
+        image_bytes, content_type = cached
+    else:
+        file_url = f"https://api.telegram.org/file/bot{env_settings.BOT_TOKEN}/{file_path}"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(file_url) as resp:
+                if resp.status != 200:
+                    raise HTTPException(status_code=404, detail="Profile photo unavailable")
+                image_bytes = await resp.read()
+                content_type = resp.headers.get("Content-Type", "image/jpeg")
+
+        if len(_avatar_bytes_cache) >= _AVATAR_CACHE_MAX:
+            _avatar_bytes_cache.clear()
+        _avatar_bytes_cache[file_path] = (image_bytes, content_type)
 
     return Response(content=image_bytes, media_type=content_type, headers={"Cache-Control": "public, max-age=21600"})
 
