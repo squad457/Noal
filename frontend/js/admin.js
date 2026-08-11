@@ -326,10 +326,10 @@ async function renderGamesAdmin(body) {
     <h3 class="admin-sect mt-2">🎡 Spin Wheel</h3>
     <div class="glass-card p-5">
       ${toggleRow("set-spin-enabled", "Spin Wheel Enabled", "", s.spin_enabled)}
-      <div class="admin-field"><label>Payout Range — Min (USDT)</label><input id="set-spin-min" type="number" step="0.0001" value="${s.spin_min_reward}" /></div>
-      <div class="admin-field"><label>Payout Range — Max (USDT)</label><input id="set-spin-max" type="number" step="0.0001" value="${s.spin_max_reward}" /></div>
-      <p class="text-xs text-gray-500 -mt-1 mb-3">Every spin pays a random amount inside this range, regardless of which segment it visually lands on.</p>
-      <div class="admin-field"><label>Wheel Segment Numbers (comma-separated, 6-8+ slots — cosmetic only)</label><input id="set-spin-segments" type="text" value="${s.spin_segments.join(",")}" /></div>
+      <div class="admin-field"><label>Reward Range — Min (USDT)</label><input id="set-spin-min" type="number" step="0.0001" value="${s.spin_min_reward}" /></div>
+      <div class="admin-field"><label>Reward Range — Max (USDT)</label><input id="set-spin-max" type="number" step="0.0001" value="${s.spin_max_reward}" /></div>
+      <p class="text-xs text-gray-500 -mt-1 mb-3">The wheel can only land on — and pay — a segment number inside this range. Segments outside the range still show on the wheel but can never actually be won.</p>
+      <div class="admin-field"><label>Wheel Segment Numbers (comma-separated, 6-8+ slots)</label><input id="set-spin-segments" type="text" value="${s.spin_segments.join(",")}" /></div>
       <div class="admin-field"><label>Free Spins per Day</label><input id="set-spin-free" type="number" value="${s.spin_daily_free_spins}" /></div>
       <div class="admin-field"><label>Max Spins per Day (0 = unlimited via ads)</label><input id="set-spin-max-daily" type="number" value="${s.spin_max_daily_spins}" /></div>
       ${toggleRow("set-spin-require-ad", "Require Ad After Free Spins", "User must watch a rewarded ad to spin again once free spins are used", s.spin_require_ad_after_free)}
@@ -350,27 +350,11 @@ async function renderGamesAdmin(body) {
     <button id="btn-save-games" class="w-full btn-primary py-3.5 text-sm mt-2 mb-4">💾 Save Game Settings</button>
   `;
 
-  // Live auto-correct: if the admin leaves min > max in either range, swap the
-  // two field values immediately (don't wait for Save) so the form always
-  // reflects a valid range as soon as they move to the next field.
-  wireMinMaxAutoSwap("set-spin-min", "set-spin-max");
-  wireMinMaxAutoSwap("set-scratch-min", "set-scratch-max");
-}
-
-function wireMinMaxAutoSwap(minId, maxId) {
-  const minEl = document.getElementById(minId);
-  const maxEl = document.getElementById(maxId);
-  if (!minEl || !maxEl) return;
-  const fixOrder = () => {
-    const minVal = parseFloat(minEl.value);
-    const maxVal = parseFloat(maxEl.value);
-    if (!isNaN(minVal) && !isNaN(maxVal) && minVal > maxVal) {
-      minEl.value = maxVal;
-      maxEl.value = minVal;
-    }
-  };
-  minEl.addEventListener("blur", fixOrder);
-  maxEl.addEventListener("blur", fixOrder);
+  // Note: no live-swap on blur here — that used to compare a freshly typed
+  // value against whatever stale value still sat in the other field and
+  // silently rewrite it before the admin had finished editing. Any min/max
+  // range correction now happens once, at Save time, using only the values
+  // actually submitted together (see saveGameSettings below).
 }
 
 async function saveGameSettings() {
@@ -394,13 +378,23 @@ async function saveGameSettings() {
   };
   if (payload.spin_segments.length < 2) { showToast("Add at least a couple of wheel segments", "error"); return; }
   if (payload.scratch_winning_cells < 1 || payload.scratch_winning_cells > 9) { showToast("Winning cells must be between 1 and 9", "error"); return; }
+  // Correct a reversed range using only the two values being submitted
+  // together right now — never mixed with whatever was previously stored.
+  if (payload.spin_min_reward > payload.spin_max_reward) {
+    [payload.spin_min_reward, payload.spin_max_reward] = [payload.spin_max_reward, payload.spin_min_reward];
+  }
+  if (payload.scratch_min_reward > payload.scratch_max_reward) {
+    [payload.scratch_min_reward, payload.scratch_max_reward] = [payload.scratch_max_reward, payload.scratch_min_reward];
+  }
+  if (!payload.spin_segments.some(v => v >= payload.spin_min_reward && v <= payload.spin_max_reward)) {
+    showToast("At least one wheel segment must fall inside the spin reward range", "error");
+    return;
+  }
   try {
     const saved = await adminApi("/api/admin/settings", { method: "POST", body: payload });
-    // The backend auto-swaps a reversed min/max range instead of rejecting it —
-    // detect that here and refresh the form so the fields show the corrected values.
     const wasSwapped = saved.spin_min_reward !== payload.spin_min_reward
       || saved.scratch_min_reward !== payload.scratch_min_reward;
-    showToast(wasSwapped ? "Saved — a min/max range was reversed, so it was auto-corrected." : "Game settings saved!");
+    showToast(wasSwapped ? "Saved — a reversed min/max range was auto-corrected." : "Game settings saved!");
     await renderGamesAdmin(document.getElementById("admin-body"));
   } catch (err) {
     showToast(err.message, "error");

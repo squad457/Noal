@@ -1,17 +1,45 @@
 import json
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+import aiohttp
+from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.auth import get_current_user
+from app.bot import fetch_avatar_file_path
 from app.config import settings as env_settings
 from app.database import get_db, get_settings
 
 router = APIRouter(prefix="/api/user", tags=["user"])
 
+PHOTO_CACHE_TTL = timedelta(hours=6)
+
 
 def _today_utc() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+async def _refresh_avatar_if_stale(db, user: dict) -> dict:
+    """Re-checks the user's Telegram profile photo at most once per PHOTO_CACHE_TTL
+    and keeps the cached file_path in sync. Returns the (possibly updated) user dict."""
+    synced_at = user.get("photo_synced_at")
+    is_stale = True
+    if synced_at:
+        try:
+            is_stale = datetime.now(timezone.utc) - datetime.fromisoformat(synced_at).replace(tzinfo=timezone.utc) > PHOTO_CACHE_TTL
+        except ValueError:
+            is_stale = True
+
+    if is_stale:
+        file_path = await fetch_avatar_file_path(user["telegram_id"])
+        now = datetime.now(timezone.utc).isoformat()
+        await db.execute(
+            "UPDATE users SET photo_file_path = ?, photo_synced_at = ? WHERE telegram_id = ?",
+            (file_path, now, user["telegram_id"]),
+        )
+        await db.commit()
+        user = {**user, "photo_file_path": file_path, "photo_synced_at": now}
+
+    return user
 
 
 @router.get("/sync")
@@ -22,6 +50,7 @@ async def sync_user(user: dict = Depends(get_current_user)):
     """
     async with get_db() as db:
         cfg = await get_settings(db)
+        user = await _refresh_avatar_if_stale(db, user)
 
     return {
         "telegram_id": user["telegram_id"],
@@ -36,7 +65,34 @@ async def sync_user(user: dict = Depends(get_current_user)):
         "binance_pay_id": user["binance_pay_id"],
         "referral_link": f"https://t.me/{env_settings.BOT_USERNAME}/{env_settings.MINI_APP_SHORT_NAME}?startapp={user['telegram_id']}",
         "support_username": cfg["support_username"],
+        # Relative path — the frontend prepends API_BASE. Never a direct Telegram
+        # file URL, since that would embed the bot token in a client-visible link.
+        "avatar_url": f"/api/user/avatar/{user['telegram_id']}" if user.get("photo_file_path") else None,
     }
+
+
+@router.get("/avatar/{telegram_id}")
+async def get_avatar(telegram_id: int):
+    """
+    Proxies a user's Telegram profile photo. This never exposes the bot token to
+    the client — the token-bearing Telegram file URL is only ever used in this
+    server-to-server request.
+    """
+    async with get_db() as db:
+        cursor = await db.execute("SELECT photo_file_path FROM users WHERE telegram_id = ?", (telegram_id,))
+        row = await cursor.fetchone()
+    if not row or not row["photo_file_path"]:
+        raise HTTPException(status_code=404, detail="No profile photo on file")
+
+    file_url = f"https://api.telegram.org/file/bot{env_settings.BOT_TOKEN}/{row['photo_file_path']}"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(file_url) as resp:
+            if resp.status != 200:
+                raise HTTPException(status_code=404, detail="Profile photo unavailable")
+            image_bytes = await resp.read()
+            content_type = resp.headers.get("Content-Type", "image/jpeg")
+
+    return Response(content=image_bytes, media_type=content_type, headers={"Cache-Control": "public, max-age=21600"})
 
 
 @router.post("/checkin")

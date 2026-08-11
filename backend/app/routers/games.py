@@ -2,10 +2,14 @@
 In-app games: Spin Wheel and Scratch Card.
 
 Design (per product requirement):
-- The admin sets a payout RANGE (e.g. 0.04–0.09 USDT). Every play pays a random
-  amount drawn from that range — the reward is NEVER derived from which segment
-  the wheel visually lands on. The segment numbers are purely cosmetic and are
-  freely editable by the admin (min 6 segments recommended) via /api/admin/settings.
+- Spin Wheel: the admin sets a payout range (spin_min_reward, spin_max_reward —
+  e.g. 0.09-0.5 USDT). The wheel can only ever LAND on a segment whose number
+  falls inside that range, and the reward paid is EXACTLY that segment's
+  number — so what the user sees is always what they get, and money can never
+  scatter outside the admin-approved range. Segments outside the range can
+  still be shown on the wheel as decorative "near miss" numbers (e.g. a big
+  cosmetic jackpot number, or 0.00), but they can never actually be won.
+- Scratch Card still pays a random amount drawn from an admin-set min/max range.
 - Each user gets a small number of free plays per day (admin-configurable).
   Once those are used, playing again requires watching a rewarded Adsgram ad
   first — the frontend calls showRewardedAd() and passes the resulting
@@ -108,6 +112,8 @@ async def spin_status(user: dict = Depends(get_current_user)):
     return {
         "enabled": cfg["spin_enabled"],
         "segments": cfg["spin_segments"],
+        "min_reward": cfg["spin_min_reward"],
+        "max_reward": cfg["spin_max_reward"],
         "played_today": played_today,
         "free_spins_left": free_left,
         "max_daily_spins": cfg["spin_max_daily_spins"],
@@ -139,13 +145,24 @@ async def spin_play(payload: GamePlayPayload, user: dict = Depends(get_current_u
                 used_ad = await _consume_ad_unlock(db, telegram_id, "spin", payload.ad_reward_event)
             # else: unlimited free spins beyond the guaranteed minimum, gated only by cooldown/cap
 
+        # Only segments whose number falls inside the admin's [min, max] range
+        # are eligible to actually be landed on — this is what stops the wheel
+        # from ever paying out an uncontrolled amount. Segments outside the
+        # range still render on the wheel (decorative) but can never win.
+        segments = cfg["spin_segments"] or [0]
         min_r, max_r = cfg["spin_min_reward"], cfg["spin_max_reward"]
         if max_r < min_r:
             min_r, max_r = max_r, min_r
-        reward = round(random.uniform(min_r, max_r), 4)
-
-        segments = cfg["spin_segments"] or [reward]
-        landed_index = random.randrange(len(segments))
+        eligible = [i for i, v in enumerate(segments) if min_r <= v <= max_r]
+        if not eligible:
+            # Misconfigured by the admin (no segment inside the range) — fail safe
+            # rather than silently paying an out-of-range amount.
+            raise HTTPException(
+                status_code=500,
+                detail="Spin is misconfigured: no wheel segment falls inside the admin's reward range",
+            )
+        landed_index = random.choice(eligible)
+        reward = round(float(segments[landed_index]), 4)
 
         new_balance = await _credit(
             db, telegram_id, "spin", reward, used_ad, {"landed_index": landed_index}

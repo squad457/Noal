@@ -91,17 +91,28 @@ async def update_settings(payload: SettingsUpdate):
         raise HTTPException(status_code=400, detail="No fields provided")
 
     async with get_db() as db:
-        # Auto-detect reversed reward ranges (min > max) and swap them instead
-        # of rejecting the save — compare against the *effective* values (this
-        # payload merged over what's already stored) in case the admin only
-        # edited one side of the pair.
-        current = await get_settings(db)
-        merged = {**current, **updates}
+        # Auto-detect a reversed reward range (min > max) and swap it instead of
+        # rejecting the save. IMPORTANT: only swap when BOTH sides are present in
+        # THIS submitted payload — never mix in the old stored value. Comparing
+        # a freshly-typed min against a stale, untouched stored max is what used
+        # to silently rewrite a number the admin never touched.
         for min_key, max_key in (("spin_min_reward", "spin_max_reward"), ("scratch_min_reward", "scratch_max_reward")):
-            if merged[min_key] > merged[max_key]:
-                merged[min_key], merged[max_key] = merged[max_key], merged[min_key]
-                updates[min_key] = merged[min_key]
-                updates[max_key] = merged[max_key]
+            if min_key in updates and max_key in updates and updates[min_key] > updates[max_key]:
+                updates[min_key], updates[max_key] = updates[max_key], updates[min_key]
+
+        # Guard rail: the wheel can only pay a segment inside [spin_min_reward,
+        # spin_max_reward], so reject a save that would leave zero segments
+        # inside that range — that would make Spin unplayable rather than let
+        # it silently pay out-of-range money.
+        current = await get_settings(db)
+        effective_segments = updates.get("spin_segments", current["spin_segments"])
+        effective_min = updates.get("spin_min_reward", current["spin_min_reward"])
+        effective_max = updates.get("spin_max_reward", current["spin_max_reward"])
+        if not any(effective_min <= v <= effective_max for v in effective_segments):
+            raise HTTPException(
+                status_code=400,
+                detail="At least one wheel segment number must fall inside the spin reward range",
+            )
 
         for key, value in updates.items():
             if isinstance(value, bool):

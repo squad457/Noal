@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS users (
     last_checkin_date TEXT,                          -- 'YYYY-MM-DD' in UTC
     referred_by       INTEGER,                       -- telegram_id of referrer, NULL if none
     binance_pay_id    TEXT,                           -- last-used payout ID, prefilled on wallet page
+    photo_file_path   TEXT,                            -- cached Telegram file_path for the profile photo (never a full URL — see bot.fetch_avatar_file_path)
+    photo_synced_at   TEXT,                            -- when photo_file_path was last refreshed, for cache TTL
     is_banned         INTEGER NOT NULL DEFAULT 0,
     created_at        TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (referred_by) REFERENCES users(telegram_id)
@@ -153,7 +155,8 @@ DEFAULT_SETTINGS = {
     "maintenance_message": "We'll be back shortly — thanks for your patience!",
     "adsgram_debug": "1" if settings.ADSGRAM_DEBUG else "0",
 
-    # Spin Wheel
+    # Spin Wheel — reward paid is always exactly the landed segment's number,
+    # and the wheel can only land on segments inside [spin_min_reward, spin_max_reward]
     "spin_enabled": "1" if settings.SPIN_ENABLED else "0",
     "spin_min_reward": str(settings.SPIN_MIN_REWARD),
     "spin_max_reward": str(settings.SPIN_MAX_REWARD),
@@ -178,6 +181,17 @@ async def init_db():
     """Run once on app startup. Creates tables if they don't exist yet — safe to re-run."""
     async with aiosqlite.connect(settings.DB_PATH) as db:
         await db.executescript(SCHEMA)
+
+        # Migration: add columns introduced after the initial CREATE TABLE, for
+        # databases that already existed before this version. ALTER TABLE ADD
+        # COLUMN has no "IF NOT EXISTS" in SQLite, so check first and ignore if
+        # the column is already there.
+        cursor = await db.execute("PRAGMA table_info(users)")
+        existing_columns = {row[1] for row in await cursor.fetchall()}
+        for column, ddl_type in (("photo_file_path", "TEXT"), ("photo_synced_at", "TEXT")):
+            if column not in existing_columns:
+                await db.execute(f"ALTER TABLE users ADD COLUMN {column} {ddl_type}")
+
         # Seed any settings keys that don't exist yet (won't overwrite admin-edited values)
         for key, value in DEFAULT_SETTINGS.items():
             await db.execute(

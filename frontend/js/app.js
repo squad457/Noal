@@ -77,10 +77,9 @@ async function loadTabData(tab) {
     if (state.user) {
       const avatarEl = document.getElementById("user-avatar");
       const nameEl = document.getElementById("user-name-label");
-      const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
       if (avatarEl) {
-        if (tgUser?.photo_url) {
-          avatarEl.innerHTML = `<img src="${tgUser.photo_url}" alt="Profile" class="w-full h-full rounded-full object-cover" />`;
+        if (state.user.avatar_url) {
+          avatarEl.innerHTML = `<img src="${API_BASE}${state.user.avatar_url}" alt="Profile" class="w-full h-full rounded-full object-cover" />`;
         } else {
           avatarEl.textContent = state.user.first_name?.[0]?.toUpperCase() || "U";
         }
@@ -259,7 +258,7 @@ document.addEventListener("click", async (e) => {
     gate.innerHTML = `
       <div class="brand-mark w-14 h-14 text-xl mb-4">N</div>
       <h2 class="font-display text-lg font-bold mb-2">Open this ledger in Telegram</h2>
-      <p class="text-xs text-gray-400 max-w-xs mb-6">Noal runs as a Telegram Mini App and needs Telegram to verify your account. Launch it from the bot below.</p>
+      <p class="text-xs text-gray-400 max-w-xs mb-6">USDT Reward runs as a Telegram Mini App and needs Telegram to verify your account. Launch it from the bot below.</p>
       <a href="${BOT_APP_URL}" class="btn-primary px-6 py-3 text-sm font-semibold rounded-xl text-white">Launch in Telegram</a>
     `;
     document.body.appendChild(gate);

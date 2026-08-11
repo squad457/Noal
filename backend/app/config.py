@@ -64,15 +64,17 @@ class Settings:
 
     # --- Spin Wheel game ---
     SPIN_ENABLED: bool = os.getenv("SPIN_ENABLED", "1") == "1"
-    # Every spin (regardless of which segment it visually lands on) pays a random
-    # amount inside this range — the admin controls the payout economics here,
-    # not through the segment labels, which are purely cosmetic display numbers.
-    SPIN_MIN_REWARD: float = float(os.getenv("SPIN_MIN_REWARD", "0.002"))
-    SPIN_MAX_REWARD: float = float(os.getenv("SPIN_MAX_REWARD", "0.01"))
-    # Cosmetic numbers shown on the wheel segments (admin-editable, 6-8+ slots recommended)
-    SPIN_SEGMENTS: list[float] = [0.002, 0.02, 0.004, 0.05, 0.003, 0.008, 0.006, 0.01]
+    # The reward paid is EXACTLY the number on the segment the wheel lands on —
+    # but the wheel can only ever LAND on a segment whose number falls inside
+    # this admin-set [min, max] range. Segments outside the range still show on
+    # the wheel (so the admin can add "jackpot"/"try again" style decorative
+    # numbers) but are never selected as the actual outcome, so real money can
+    # never scatter outside the approved range.
+    SPIN_MIN_REWARD: float = float(os.getenv("SPIN_MIN_REWARD", "0.09"))
+    SPIN_MAX_REWARD: float = float(os.getenv("SPIN_MAX_REWARD", "0.5"))
+    SPIN_SEGMENTS: list[float] = [0.09, 0.5, 0.15, 0.3, 0.1, 0.5, 0.2, 0.4]
     SPIN_DAILY_FREE_SPINS: int = int(os.getenv("SPIN_DAILY_FREE_SPINS", "1"))
-    SPIN_MAX_DAILY_SPINS: int = int(os.getenv("SPIN_MAX_DAILY_SPINS", "5"))  # 0 = unlimited (still gated by ads)
+    SPIN_MAX_DAILY_SPINS: int = int(os.getenv("SPIN_MAX_DAILY_SPINS", "8"))  # 0 = unlimited (still gated by ads)
     SPIN_REQUIRE_AD_AFTER_FREE: bool = os.getenv("SPIN_REQUIRE_AD_AFTER_FREE", "1") == "1"
     SPIN_COOLDOWN_SECONDS: int = int(os.getenv("SPIN_COOLDOWN_SECONDS", "3"))
 
