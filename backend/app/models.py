@@ -80,28 +80,16 @@ class SettingsUpdate(BaseModel):
     # taps a player needs at minimum to complete a card). 1-9.
     scratch_winning_cells: int | None = None
 
-    @field_validator("spin_max_reward")
-    @classmethod
-    def check_spin_range(cls, v, info):
-        min_v = info.data.get("spin_min_reward")
-        if v is not None and min_v is not None and v < min_v:
-            raise ValueError("spin_max_reward must be >= spin_min_reward")
-        return v
-
-    @field_validator("scratch_max_reward")
-    @classmethod
-    def check_scratch_range(cls, v, info):
-        min_v = info.data.get("scratch_min_reward")
-        if v is not None and min_v is not None and v < min_v:
-            raise ValueError("scratch_max_reward must be >= scratch_min_reward")
-        return v
-
     @field_validator("scratch_winning_cells")
     @classmethod
     def check_scratch_winning_cells(cls, v):
         if v is not None and not (1 <= v <= 9):
             raise ValueError("scratch_winning_cells must be between 1 and 9")
         return v
+
+    # Reward ranges (spin/scratch min & max) are intentionally NOT validated here.
+    # If an admin submits them reversed, /api/admin/settings auto-swaps them
+    # instead of rejecting the request — see update_settings in routers/admin.py.
 
 
 class UserAdjustBalance(BaseModel):

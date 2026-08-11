@@ -373,8 +373,13 @@ async function saveGameSettings() {
   if (payload.spin_segments.length < 2) { showToast("Add at least a couple of wheel segments", "error"); return; }
   if (payload.scratch_winning_cells < 1 || payload.scratch_winning_cells > 9) { showToast("Winning cells must be between 1 and 9", "error"); return; }
   try {
-    await adminApi("/api/admin/settings", { method: "POST", body: payload });
-    showToast("Game settings saved!");
+    const saved = await adminApi("/api/admin/settings", { method: "POST", body: payload });
+    // The backend auto-swaps a reversed min/max range instead of rejecting it —
+    // detect that here and refresh the form so the fields show the corrected values.
+    const wasSwapped = saved.spin_min_reward !== payload.spin_min_reward
+      || saved.scratch_min_reward !== payload.scratch_min_reward;
+    showToast(wasSwapped ? "Saved — a min/max range was reversed, so it was auto-corrected." : "Game settings saved!");
+    await renderGamesAdmin(document.getElementById("admin-body"));
   } catch (err) {
     showToast(err.message, "error");
   }

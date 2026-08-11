@@ -91,6 +91,18 @@ async def update_settings(payload: SettingsUpdate):
         raise HTTPException(status_code=400, detail="No fields provided")
 
     async with get_db() as db:
+        # Auto-detect reversed reward ranges (min > max) and swap them instead
+        # of rejecting the save — compare against the *effective* values (this
+        # payload merged over what's already stored) in case the admin only
+        # edited one side of the pair.
+        current = await get_settings(db)
+        merged = {**current, **updates}
+        for min_key, max_key in (("spin_min_reward", "spin_max_reward"), ("scratch_min_reward", "scratch_max_reward")):
+            if merged[min_key] > merged[max_key]:
+                merged[min_key], merged[max_key] = merged[max_key], merged[min_key]
+                updates[min_key] = merged[min_key]
+                updates[max_key] = merged[max_key]
+
         for key, value in updates.items():
             if isinstance(value, bool):
                 stored = "1" if value else "0"

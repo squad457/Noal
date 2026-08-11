@@ -93,14 +93,22 @@ async function handleSpinClick() {
     const segments = res.segments;
     const n = segments.length;
     const slice = 360 / n;
-    // Land the pointer (fixed at top / 0deg) on the center of the chosen segment,
-    // plus several full extra turns so the spin animation feels satisfying.
-    const targetAngle = 360 * 6 - (res.landed_index * slice + slice / 2);
-    wheelRotation = targetAngle;
+    // The pointer is fixed at the top (0deg). To land the chosen segment there,
+    // the wheel's *normalized* rotation must end at (360 - segmentCenterAngle).
+    // Rotation is cumulative (never reset to a small absolute value) — always
+    // spin forward several full turns from wherever the wheel currently sits,
+    // so every spin feels powerful and never looks like a short backward flick.
+    const segmentCenterAngle = res.landed_index * slice + slice / 2;
+    const desiredNormalized = (360 - segmentCenterAngle + 360) % 360;
+    const currentNormalized = ((wheelRotation % 360) + 360) % 360;
+    let forwardDelta = desiredNormalized - currentNormalized;
+    if (forwardDelta <= 0) forwardDelta += 360;
+    const EXTRA_FULL_TURNS = 7;
+    wheelRotation += forwardDelta + 360 * EXTRA_FULL_TURNS;
 
     const wheelEl = document.getElementById("spin-wheel");
     if (wheelEl) {
-      wheelEl.style.transition = "transform 3.2s cubic-bezier(0.17, 0.67, 0.12, 0.99)";
+      wheelEl.style.transition = "transform 3.6s cubic-bezier(0.11, 0.82, 0.1, 1)";
       wheelEl.style.transform = `rotate(${wheelRotation}deg)`;
     }
 
@@ -110,7 +118,7 @@ async function handleSpinClick() {
       state.user = await Api.syncUser();
       state.spinStatus = await Api.spinStatus();
       renderActiveTab();
-    }, 3300);
+    }, 3700);
   } catch (err) {
     wheelSpinning = false;
     renderActiveTab();
