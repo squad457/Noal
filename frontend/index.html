@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>USDT Reward</title>
+<title>Tap Quest</title>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
@@ -53,23 +53,29 @@
       </svg>
     </div>
   </div>
-  <p class="font-display font-bold text-base tracking-wide">USDT Reward</p>
-  <p class="splash-tag">USDT Rewards</p>
+  <p class="font-display font-bold text-base tracking-wide">Tap Quest</p>
+  <p class="splash-tag">Daily quests, streaks &amp; mini-games</p>
   <p id="splash-fallback">
-    This app only opens inside Telegram.<br>
-    Please launch it from <a href="https://t.me/UsdtReward1bot/app" target="_top">@UsdtReward1bot</a>.
+    Loading your quest board…
   </p>
 </div>
 
 <!-- Signature aurora glow -->
 <div class="aurora-field"></div>
 
+<!-- Shown only when running outside Telegram (plain browser / reviewer preview).
+     Honest, dismissible disclosure — never a fake "logged in" state. -->
+<div id="preview-banner" class="hidden relative z-20 mx-4 mt-3 rounded-xl border border-violet/40 bg-violet/10 px-4 py-2.5 text-[11px] text-violet-100 flex items-center gap-2">
+  <span>👀</span>
+  <span class="flex-1">Preview Mode — sample data shown. Open via Telegram for your real account.</span>
+</div>
+
 <!-- Top bar -->
 <header class="relative z-10 flex items-center justify-between px-5 pt-5 pb-3">
   <div class="flex items-center gap-3">
     <div id="user-avatar" class="brand-mark overflow-hidden shrink-0">U</div>
     <div>
-      <span class="font-display font-bold text-lg tracking-tight">USDT Reward</span>
+      <span class="font-display font-bold text-lg tracking-tight">Tap Quest</span>
       <p id="user-name-label" class="text-[10px] text-[#9B95B8] -mt-0.5 truncate max-w-[130px]"></p>
     </div>
   </div>
@@ -99,7 +105,7 @@
     </button>
     <button data-tab="earn" class="nav-btn">
       <svg viewBox="0 0 24 24" class="nav-icon"><path d="M5 4h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 4v5h5M9 13l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>Earn</span>
+      <span>Quests</span>
     </button>
     <button data-tab="games" class="nav-btn">
       <svg viewBox="0 0 24 24" class="nav-icon"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 3v9l6 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -116,6 +122,7 @@
   </div>
 </nav>
 
+<script src="js/mock-data.js"></script>
 <script src="js/api.js"></script>
 <script src="js/adsgram.js"></script>
 <script src="js/views.js"></script>

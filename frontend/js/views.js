@@ -32,6 +32,24 @@ const TXN_META = {
   admin_adjust:        { icon: "•", label: "Balance adjustment", cls: "bg-white/5 border-white/15 text-gray-300" },
 };
 
+// In-game currency is a display-only view of the same real balance — Coins
+// and XP shown here are not a separate ledger, just a game-friendly framing.
+// The exact USDT figure always lives in the Wallet tab (see renderWallet),
+// never hidden, just not the headline on Home.
+const COIN_RATE = 1000; // 1 USDT = 1000 Coins, disclosed in the Wallet tab
+const XP_PER_LEVEL = 0.05; // USDT of lifetime earnings per level
+
+function fmtCoins(usdt) {
+  return Math.round(Number(usdt) * COIN_RATE).toLocaleString();
+}
+
+function levelInfo(totalEarned) {
+  const raw = Number(totalEarned) / XP_PER_LEVEL;
+  const level = Math.floor(raw) + 1;
+  const progressPct = Math.round((raw % 1) * 100);
+  return { level, progressPct };
+}
+
 // ---------- HOME ----------
 function renderHome(state) {
   const { user, transactions } = state;
@@ -45,30 +63,39 @@ function renderHome(state) {
     return `<div class="streak-dot ${cls}">${day}</div>`;
   }).join("");
 
-  const activityRows = transactions && transactions.length
-    ? transactions.map(t => {
-        const meta = TXN_META[t.type] || TXN_META.admin_adjust;
-        const positive = t.amount >= 0;
-        return `
-          <div class="row-item">
-            <div class="w-9 h-9 rounded-lg border flex items-center justify-center text-sm shrink-0 ${meta.cls}">${meta.icon}</div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium truncate">${meta.label}</p>
-              <p class="text-xs text-gray-500">${timeAgo(t.created_at)}</p>
-            </div>
-            <p class="text-sm font-mono font-semibold shrink-0 ${positive ? "text-mint" : "text-gray-400"}">${positive ? "+" : ""}${t.amount.toFixed(4)}</p>
-          </div>`;
-      }).join("")
-    : "";
+  const { level, progressPct } = levelInfo(user.total_earned);
+
+  const tasksCompleted = (state.tasks || []).filter(t => t.completed).length;
+  const achievements = [
+    { done: user.streak_count >= 3, icon: "🔥", label: "3-day streak", detail: `${Math.min(user.streak_count, 3)}/3 days` },
+    { done: user.streak_count >= 7, icon: "🏅", label: "7-day streak", detail: `${Math.min(user.streak_count, 7)}/7 days` },
+    { done: tasksCompleted >= 1, icon: "✓", label: "First quest complete", detail: tasksCompleted >= 1 ? "Unlocked" : "Complete a quest" },
+    { done: level >= 5, icon: "⭐", label: "Reach Level 5", detail: `Level ${Math.min(level, 5)}/5` },
+  ];
+  const achievementRows = achievements.map(a => `
+    <div class="row-item">
+      <div class="w-9 h-9 rounded-lg border flex items-center justify-center text-sm shrink-0 ${a.done ? "bg-mint/10 border-mint/40 text-mint" : "bg-white/5 border-white/15 text-gray-500"}">${a.icon}</div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium truncate ${a.done ? "" : "text-gray-400"}">${a.label}</p>
+        <p class="text-xs text-gray-500">${a.detail}</p>
+      </div>
+      ${a.done ? '<span class="text-mint text-xs font-semibold">✓</span>' : ""}
+    </div>`).join("");
 
   return `
-    <!-- Unified wallet card: balance + streak in one -->
+    <!-- Level + Coins card (gamified framing of the same real balance;
+         the actual USDT amount is always visible in Wallet) -->
     <div class="card-hero p-6 mt-2">
       <div class="text-center">
-        <span class="pill-chip mb-3">✓ Verified Ledger</span>
-        <p class="text-[11px] uppercase tracking-[0.14em] text-gray-500 mt-3">Your Balance</p>
-        <h1 class="font-display text-4xl font-bold grad-text mt-1 font-mono">${fmtUsd(user.balance)}</h1>
-        <p class="text-xs text-gray-500 mt-2">Lifetime earned&nbsp;<span class="font-mono">${fmtUsd(user.total_earned)}</span></p>
+        <span class="pill-chip mb-3">⭐ Level ${level}</span>
+        <p class="text-[11px] uppercase tracking-[0.14em] text-gray-500 mt-3">Your Coins</p>
+        <h1 class="font-display text-4xl font-bold grad-text mt-1 font-mono">🪙 ${fmtCoins(user.balance)}</h1>
+        <div class="flex items-center gap-2 mt-3 px-6">
+          <div class="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-violet to-magenta rounded-full" style="width:${progressPct}%"></div>
+          </div>
+          <span class="text-[10px] text-gray-500 font-mono shrink-0">${progressPct}% to Lvl ${level + 1}</span>
+        </div>
       </div>
 
       <div class="border-t border-white/10 mt-5 pt-4">
@@ -78,7 +105,7 @@ function renderHome(state) {
         </div>
         <div class="flex justify-between gap-1.5 mb-4">${streakDots}</div>
         <button id="btn-checkin" class="w-full btn-primary py-3 text-sm ${user.checked_in_today ? "opacity-40 pointer-events-none" : "pulse"}">
-          ${user.checked_in_today ? "✓ Checked in today" : "Claim Daily Reward"}
+          ${user.checked_in_today ? "✓ Checked in today" : "🎁 Claim Daily Boost"}
         </button>
       </div>
     </div>
@@ -86,8 +113,8 @@ function renderHome(state) {
     <!-- Quick actions -->
     <div class="grid grid-cols-3 gap-2.5 mt-4">
       <button data-goto="earn" class="card p-3.5 text-center">
-        <div class="w-8 h-8 mx-auto rounded-lg bg-mint/10 border border-mint/40 flex items-center justify-center text-mint text-sm mb-2">▶</div>
-        <p class="font-semibold text-[11.5px]">Watch &amp; Earn</p>
+        <div class="w-8 h-8 mx-auto rounded-lg bg-mint/10 border border-mint/40 flex items-center justify-center text-mint text-sm mb-2">⚡</div>
+        <p class="font-semibold text-[11.5px]">Refill Energy</p>
       </button>
       <button data-goto="invite" class="card p-3.5 text-center">
         <div class="w-8 h-8 mx-auto rounded-lg bg-violet/10 border border-violet/40 flex items-center justify-center text-violet text-sm mb-2">+</div>
@@ -99,11 +126,9 @@ function renderHome(state) {
       </button>
     </div>
 
-    <!-- Recent activity (real transaction feed) -->
-    <h3 class="font-display font-semibold mt-5 mb-2.5 text-sm uppercase tracking-[0.1em] text-gray-500">Recent Activity</h3>
-    <div class="card px-4">
-      ${transactions && transactions.length === 0 ? emptyState("No activity yet — start earning!") : activityRows}
-    </div>
+    <!-- Quests / Achievements (progress-based, not a payout ledger) -->
+    <h3 class="font-display font-semibold mt-5 mb-2.5 text-sm uppercase tracking-[0.1em] text-gray-500">Achievements</h3>
+    <div class="card px-4">${achievementRows}</div>
   `;
 }
 
@@ -116,14 +141,14 @@ function renderEarn(state) {
       <div class="card-feature p-4">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-3 min-w-0 pr-2">
-            <div class="w-9 h-9 rounded-lg bg-mint/10 border border-mint/40 flex items-center justify-center text-mint text-sm shrink-0">▶</div>
+            <div class="w-9 h-9 rounded-lg bg-mint/10 border border-mint/40 flex items-center justify-center text-mint text-sm shrink-0">⚡</div>
             <div class="min-w-0">
-              <p class="font-semibold text-xs tracking-wide">Watch Ad for USDT</p>
-              <p class="text-[11px] text-violet mt-0.5 font-mono">${fmtUsd(adStatus.reward_per_ad)} <span class="text-gray-500 font-body">per view</span></p>
+              <p class="font-semibold text-xs tracking-wide">Refill Energy</p>
+              <p class="text-[11px] text-violet mt-0.5 font-mono">${fmtUsd(adStatus.reward_per_ad)} <span class="text-gray-500 font-body">per refill</span></p>
             </div>
           </div>
           <button id="btn-watch-ad" class="btn-task shrink-0 ${adStatus.watched_today >= adStatus.daily_limit ? "btn-secondary opacity-40 pointer-events-none" : "btn-primary"} px-3.5 py-2 text-xs font-semibold">
-            ${adStatus.watched_today >= adStatus.daily_limit ? "✓ Done" : "Watch"}
+            ${adStatus.watched_today >= adStatus.daily_limit ? "✓ Done" : "▶ Watch"}
           </button>
         </div>
         <div class="flex items-center gap-2">
@@ -153,8 +178,8 @@ function renderEarn(state) {
 
   return `
     <div class="mt-1">${adSection}</div>
-    <h3 class="font-display font-semibold mt-5 mb-2.5 text-sm uppercase tracking-[0.1em] text-gray-500">Tasks</h3>
-    ${tasks && tasks.length === 0 ? emptyState("No tasks right now — check back soon.") : taskList}
+    <h3 class="font-display font-semibold mt-5 mb-2.5 text-sm uppercase tracking-[0.1em] text-gray-500">Quests</h3>
+    ${tasks && tasks.length === 0 ? emptyState("No quests right now — check back soon.") : taskList}
   `;
 }
 
@@ -200,6 +225,7 @@ function renderWallet(state) {
     <div class="card-hero p-5 mt-2 text-center">
       <p class="text-[11px] uppercase tracking-[0.14em] text-gray-500">Available to Withdraw</p>
       <h2 class="font-display text-3xl font-bold mt-1 font-mono grad-text">${fmtUsd(user.balance)}</h2>
+      <p class="text-[10.5px] text-gray-500 mt-1">🪙 ${fmtCoins(user.balance)} Coins shown on Home — same balance, ${COIN_RATE.toLocaleString()} Coins = 1 USDT</p>
       <div class="grid grid-cols-2 gap-2.5 mt-4 pt-4 border-t border-white/10">
         <div>
           <p class="font-mono text-sm font-semibold">${fmtUsd(user.total_earned)}</p>

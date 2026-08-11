@@ -274,40 +274,21 @@ document.addEventListener("click", async (e) => {
 
 // ---------- Boot ----------
 (function init() {
-  const BOT_APP_URL = "https://t.me/UsdtReward1bot/app";
-
-  // If opened outside Telegram (no initData), the API can never authenticate,
-  // so loadTabData() will always fail and the splash would spin forever.
-  // Stop that here: hide the splash immediately and show a real gate instead
-  // of a permanently-frozen loading screen.
-  if (!window.Telegram?.WebApp?.initData) {
-    document.getElementById("splash")?.classList.add("hide");
-
-    const gate = document.createElement("div");
-    gate.className = "fixed inset-0 z-[1000] bg-base flex flex-col items-center justify-center p-6 text-center";
-    gate.innerHTML = `
-      <div class="brand-mark w-14 h-14 mb-4">
-        <svg viewBox="0 0 240 240" width="30" height="30" fill="none">
-          <path fill="#fff" d="M175.68 80.9 157.28 167.6c-1.38 6.24-5.02 7.78-10.16 4.84l-28.06-20.7-13.55 13.05c-1.5 1.5-2.76 2.76-5.66 2.76l2.02-28.6L164 87.2c2.44-2.18-.53-3.4-3.78-1.22l-79.9 50.3-34.4-10.75c-7.48-2.34-7.62-7.48 1.56-11.07L164.4 68.5c6.24-2.28 11.7 1.5 9.7 12.4z"/>
-        </svg>
-      </div>
-      <h2 class="font-display text-lg font-bold mb-2">USDT Reward works only in Telegram</h2>
-      <p class="text-xs text-gray-400 max-w-xs mb-6">USDT Reward runs as a Telegram Mini App and needs Telegram to verify your account. Launch it from the bot below.</p>
-      <a href="${BOT_APP_URL}" class="btn-primary px-6 py-3 text-sm font-semibold rounded-xl text-white flex items-center gap-2">
-        <svg viewBox="0 0 240 240" width="18" height="18" fill="none">
-          <path fill="#fff" d="M175.68 80.9 157.28 167.6c-1.38 6.24-5.02 7.78-10.16 4.84l-28.06-20.7-13.55 13.05c-1.5 1.5-2.76 2.76-5.66 2.76l2.02-28.6L164 87.2c2.44-2.18-.53-3.4-3.78-1.22l-79.9 50.3-34.4-10.75c-7.48-2.34-7.62-7.48 1.56-11.07L164.4 68.5c6.24-2.28 11.7 1.5 9.7 12.4z"/>
-        </svg>
-        Launch in Telegram
-      </a>
-    `;
-    document.body.appendChild(gate);
-    return; // don't attempt to boot the app shell without Telegram context
+  // Outside Telegram, there is no real session to load — instead of gating
+  // the whole app behind a "launch in Telegram" wall (which is exactly what
+  // shows reviewers and browsers a blank/dead screen), we boot normally in
+  // PREVIEW_MODE (see mock-data.js): sample data renders the full UI, a
+  // visible banner discloses it's a preview, and money-moving actions
+  // (withdrawals) are refused with a clear message instead of pretending to
+  // work.
+  if (typeof PREVIEW_MODE !== "undefined" && PREVIEW_MODE) {
+    document.getElementById("preview-banner")?.classList.remove("hidden");
+  } else {
+    tg?.ready();
+    tg?.expand();
+    tg?.setHeaderColor?.("#0D0B1A");
+    tg?.setBackgroundColor?.("#0D0B1A");
   }
-
-  tg?.ready();
-  tg?.expand();
-  tg?.setHeaderColor?.("#0D0B1A");
-  tg?.setBackgroundColor?.("#0D0B1A");
 
   // Safety net: if something else stalls loadTabData (slow network, backend
   // hiccup), never leave the splash frozen indefinitely.

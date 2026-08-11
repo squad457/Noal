@@ -3,13 +3,21 @@
  * in a header so the backend can verify it (see backend/app/auth.py).
  *
  * Set API_BASE to your Railway backend URL after deployment.
+ *
+ * PREVIEW_MODE (see mock-data.js) is true when there's no Telegram context —
+ * in that case every call below is answered locally instead of hitting the
+ * real backend with an unauthenticatable request.
  */
 const API_BASE = "https://noal-production.up.railway.app";
 
 const tg = window.Telegram?.WebApp;
 const initData = tg?.initData || "";
 
-async function apiRequest(path, { method = "GET", body } = {}) {
+async function apiRequest(path, opts = {}) {
+  if (typeof PREVIEW_MODE !== "undefined" && PREVIEW_MODE) {
+    return mockApiRequest(path, opts);
+  }
+  const { method = "GET", body } = opts;
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers: {
