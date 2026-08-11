@@ -386,15 +386,22 @@ async function saveGameSettings() {
   if (payload.scratch_min_reward > payload.scratch_max_reward) {
     [payload.scratch_min_reward, payload.scratch_max_reward] = [payload.scratch_max_reward, payload.scratch_min_reward];
   }
-  if (!payload.spin_segments.some(v => v >= payload.spin_min_reward && v <= payload.spin_max_reward)) {
-    showToast("At least one wheel segment must fall inside the spin reward range", "error");
-    return;
-  }
   try {
     const saved = await adminApi("/api/admin/settings", { method: "POST", body: payload });
     const wasSwapped = saved.spin_min_reward !== payload.spin_min_reward
       || saved.scratch_min_reward !== payload.scratch_min_reward;
-    showToast(wasSwapped ? "Saved — a reversed min/max range was auto-corrected." : "Game settings saved!");
+    // The backend auto-fits spin_segments to the range when fewer than 2
+    // distinct rewards would otherwise be eligible (see update_settings) —
+    // reflect that back into the field so the admin sees what actually got
+    // saved instead of the numbers they typed.
+    const segmentsAutoFit = saved.spin_segments.join(",") !== payload.spin_segments.join(",");
+    showToast(
+      segmentsAutoFit
+        ? "Saved — wheel segments were auto-adjusted to fit the new reward range."
+        : wasSwapped
+          ? "Saved — a reversed min/max range was auto-corrected."
+          : "Game settings saved!"
+    );
     await renderGamesAdmin(document.getElementById("admin-body"));
   } catch (err) {
     showToast(err.message, "error");

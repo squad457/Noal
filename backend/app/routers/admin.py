@@ -84,6 +84,46 @@ async def read_settings():
         return await get_settings(db)
 
 
+def _auto_fit_spin_segments(lo: float, hi: float, total_count: int) -> list[float]:
+    """Regenerates the wheel's segment numbers around a reward range.
+
+    Only a handful of segments need to actually be winnable — 3 evenly spaced
+    values inside [lo, hi] is plenty of variety for the player. The rest of
+    the wheel is filled with bigger, eye-catching "near miss" numbers outside
+    the range purely for visual attention (per the module's design: spin_play
+    can only ever pay a segment inside [spin_min_reward, spin_max_reward], so
+    these decorative slices can never actually be won). Winnable and
+    decorative slices are interleaved so the big numbers are spread evenly
+    around the wheel instead of clumped together.
+    """
+    total_count = max(total_count, 6)
+    winnable_count = min(3, total_count)
+    decorative_count = total_count - winnable_count
+
+    if lo == hi:
+        hi = lo + 0.01  # can't spread distinct values across a zero-width range
+    if winnable_count == 1:
+        winnable = [round((lo + hi) / 2, 4)]
+    else:
+        step = (hi - lo) / (winnable_count - 1)
+        winnable = [round(lo + step * i, 4) for i in range(winnable_count)]
+
+    # Decorative numbers step up well past the max (2x, 3.5x, 5x, ...) so they
+    # visually read as tempting "big win" slices without ever being eligible.
+    base = hi if hi > 0 else max(lo, 0.01)
+    decorative = [round(base * (2 + i * 1.5), 4) for i in range(decorative_count)]
+
+    segments, wi, di = [], 0, 0
+    for i in range(winnable_count + decorative_count):
+        if i % 2 == 0 and wi < winnable_count:
+            segments.append(winnable[wi]); wi += 1
+        elif di < decorative_count:
+            segments.append(decorative[di]); di += 1
+        else:
+            segments.append(winnable[wi]); wi += 1
+    return segments
+
+
 @router.post("/settings")
 async def update_settings(payload: SettingsUpdate):
     updates = {k: v for k, v in payload.model_dump().items() if v is not None}
@@ -101,17 +141,19 @@ async def update_settings(payload: SettingsUpdate):
                 updates[min_key], updates[max_key] = updates[max_key], updates[min_key]
 
         # Guard rail: the wheel can only pay a segment inside [spin_min_reward,
-        # spin_max_reward], so reject a save that would leave zero segments
-        # inside that range — that would make Spin unplayable rather than let
-        # it silently pay out-of-range money.
+        # spin_max_reward] (see spin_play), and needs at least 2 *distinct*
+        # eligible values or every spin would pay the exact same amount —
+        # it'd look random (the wheel still spins) but never actually vary.
+        # Rather than reject the save and make the admin hand-tune numbers,
+        # auto-fit the segments to the new range (see _auto_fit_spin_segments).
         current = await get_settings(db)
         effective_segments = updates.get("spin_segments", current["spin_segments"])
         effective_min = updates.get("spin_min_reward", current["spin_min_reward"])
         effective_max = updates.get("spin_max_reward", current["spin_max_reward"])
-        if not any(effective_min <= v <= effective_max for v in effective_segments):
-            raise HTTPException(
-                status_code=400,
-                detail="At least one wheel segment number must fall inside the spin reward range",
+        eligible_values = {v for v in effective_segments if effective_min <= v <= effective_max}
+        if len(eligible_values) < 2:
+            updates["spin_segments"] = _auto_fit_spin_segments(
+                effective_min, effective_max, len(effective_segments)
             )
 
         for key, value in updates.items():
