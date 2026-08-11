@@ -26,7 +26,7 @@ function showToast(message, type = "success") {
   toast.textContent = message;
   toast.className =
     `fixed left-1/2 -translate-x-1/2 bottom-24 z-50 toast-visible card px-5 py-3 text-sm font-medium ` +
-    (type === "error" ? "text-red-400" : "text-gold");
+    (type === "error" ? "text-red-400" : "text-violet");
   setTimeout(() => { toast.className = "fixed left-1/2 -translate-x-1/2 bottom-24 z-50 hidden"; }, 2500);
 }
 
@@ -140,7 +140,7 @@ document.addEventListener("click", async (e) => {
     state.selectedMethod = method;
     document.querySelectorAll(".method-btn").forEach(b => {
       const active = b === methodBtn;
-      b.className = `method-btn card py-2.5 text-xs font-semibold text-center ${active ? 'border-gold text-gold bg-gold/10' : 'text-gray-400'}`;
+      b.className = `method-btn card py-2.5 text-xs font-semibold text-center ${active ? 'border-violet text-violet bg-violet/10' : 'text-gray-400'}`;
     });
     const label = document.getElementById("payout-label");
     const input = document.getElementById("input-payout-id");
@@ -214,7 +214,7 @@ document.addEventListener("click", async (e) => {
     document.getElementById("splash")?.classList.add("hide");
 
     const gate = document.createElement("div");
-    gate.className = "fixed inset-0 z-[1000] bg-base flex flex-col items-center justify-center p-6 text-center ledger-bg";
+    gate.className = "fixed inset-0 z-[1000] bg-base flex flex-col items-center justify-center p-6 text-center";
     gate.innerHTML = `
       <div class="brand-mark w-14 h-14 text-xl mb-4">N</div>
       <h2 class="font-display text-lg font-bold mb-2">Open this ledger in Telegram</h2>
@@ -227,8 +227,8 @@ document.addEventListener("click", async (e) => {
 
   tg?.ready();
   tg?.expand();
-  tg?.setHeaderColor?.("#12161C");
-  tg?.setBackgroundColor?.("#12161C");
+  tg?.setHeaderColor?.("#0D0B1A");
+  tg?.setBackgroundColor?.("#0D0B1A");
 
   // Safety net: if something else stalls loadTabData (slow network, backend
   // hiccup), never leave the splash frozen indefinitely.
