@@ -349,6 +349,28 @@ async function renderGamesAdmin(body) {
 
     <button id="btn-save-games" class="w-full btn-primary py-3.5 text-sm mt-2 mb-4">💾 Save Game Settings</button>
   `;
+
+  // Live auto-correct: if the admin leaves min > max in either range, swap the
+  // two field values immediately (don't wait for Save) so the form always
+  // reflects a valid range as soon as they move to the next field.
+  wireMinMaxAutoSwap("set-spin-min", "set-spin-max");
+  wireMinMaxAutoSwap("set-scratch-min", "set-scratch-max");
+}
+
+function wireMinMaxAutoSwap(minId, maxId) {
+  const minEl = document.getElementById(minId);
+  const maxEl = document.getElementById(maxId);
+  if (!minEl || !maxEl) return;
+  const fixOrder = () => {
+    const minVal = parseFloat(minEl.value);
+    const maxVal = parseFloat(maxEl.value);
+    if (!isNaN(minVal) && !isNaN(maxVal) && minVal > maxVal) {
+      minEl.value = maxVal;
+      maxEl.value = minVal;
+    }
+  };
+  minEl.addEventListener("blur", fixOrder);
+  maxEl.addEventListener("blur", fixOrder);
 }
 
 async function saveGameSettings() {
