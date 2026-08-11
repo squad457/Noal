@@ -10,6 +10,7 @@ const state = {
   walletConfig: null,
   withdrawals: null,
   referral: null,
+  transactions: null,
 };
 
 const views = {
@@ -48,7 +49,9 @@ function switchTab(tab) {
 async function loadTabData(tab) {
   try {
     if (tab === "home") {
-      state.user = await Api.syncUser();
+      const [user, transactions] = await Promise.all([Api.syncUser(), Api.transactions()]);
+      state.user = user;
+      state.transactions = transactions.slice(0, 6);
     } else if (tab === "earn") {
       const [adStatus, tasks] = await Promise.all([Api.adStatus(), Api.listTasks()]);
       state.adStatus = adStatus;
@@ -186,6 +189,18 @@ document.addEventListener("click", async (e) => {
       showToast("Withdrawal submitted!");
       await loadTabData("wallet");
     } catch (err) { showToast(err.message, "error"); }
+    return;
+  }
+
+  // Contact support (uses the bot's configured support_username)
+  if (e.target.closest("#btn-support")) {
+    const handle = state.user?.support_username || state.walletConfig?.support_username;
+    if (handle) {
+      const url = `https://t.me/${handle.replace("@", "")}`;
+      tg?.openTelegramLink ? tg.openTelegramLink(url) : window.open(url, "_blank");
+    } else {
+      showToast("Support is not configured yet", "error");
+    }
     return;
   }
 

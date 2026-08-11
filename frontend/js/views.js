@@ -7,9 +7,30 @@ function fmtUsd(n) {
   return `$${Number(n).toFixed(4)}`;
 }
 
+function timeAgo(iso) {
+  const d = new Date(iso + "Z");
+  const diffMin = Math.round((Date.now() - d.getTime()) / 60000);
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.round(diffHr / 24);
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return d.toLocaleDateString();
+}
+
+const TXN_META = {
+  ad_reward:           { icon: "▶", label: "Watched an ad",     cls: "bg-mint/10 border-mint/40 text-mint" },
+  checkin:             { icon: "🔥", label: "Daily check-in",    cls: "bg-violet/10 border-violet/40 text-violet" },
+  task_reward:         { icon: "✓", label: "Completed a task",  cls: "bg-mint/10 border-mint/40 text-mint" },
+  referral_commission: { icon: "👥", label: "Referral commission", cls: "bg-magenta/10 border-magenta/40 text-magenta" },
+  withdrawal:          { icon: "↑", label: "Withdrawal",        cls: "bg-white/5 border-white/15 text-gray-300" },
+  admin_adjust:        { icon: "•", label: "Balance adjustment", cls: "bg-white/5 border-white/15 text-gray-300" },
+};
+
 // ---------- HOME ----------
 function renderHome(state) {
-  const { user } = state;
+  const { user, transactions } = state;
   if (!user) return skeletonBlock();
 
   const streakDots = Array.from({ length: 7 }, (_, i) => {
@@ -20,36 +41,64 @@ function renderHome(state) {
     return `<div class="streak-dot ${cls}">${day}</div>`;
   }).join("");
 
+  const activityRows = transactions && transactions.length
+    ? transactions.map(t => {
+        const meta = TXN_META[t.type] || TXN_META.admin_adjust;
+        const positive = t.amount >= 0;
+        return `
+          <div class="row-item">
+            <div class="w-9 h-9 rounded-lg border flex items-center justify-center text-sm shrink-0 ${meta.cls}">${meta.icon}</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium truncate">${meta.label}</p>
+              <p class="text-xs text-gray-500">${timeAgo(t.created_at)}</p>
+            </div>
+            <p class="text-sm font-mono font-semibold shrink-0 ${positive ? "text-mint" : "text-gray-400"}">${positive ? "+" : ""}${t.amount.toFixed(4)}</p>
+          </div>`;
+      }).join("")
+    : "";
+
   return `
-    <div class="card-feature p-6 mt-2 text-center">
-      <span class="pill-chip mb-3">✓ Verified Ledger</span>
-      <p class="text-[11px] uppercase tracking-[0.14em] text-gray-500 mt-3">Your Balance</p>
-      <h1 class="font-display text-4xl font-bold grad-text mt-1 font-mono">${fmtUsd(user.balance)}</h1>
-      <p class="text-xs text-gray-500 mt-2">Lifetime earned&nbsp;<span class="font-mono">${fmtUsd(user.total_earned)}</span></p>
-    </div>
-
-    <div class="mt-4 card p-5">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-display font-semibold">Daily Streak</h3>
-        <span class="text-xs text-violet font-mono font-medium">${user.streak_count} day${user.streak_count === 1 ? "" : "s"}</span>
+    <!-- Unified wallet card: balance + streak in one -->
+    <div class="card-hero p-6 mt-2">
+      <div class="text-center">
+        <span class="pill-chip mb-3">✓ Verified Ledger</span>
+        <p class="text-[11px] uppercase tracking-[0.14em] text-gray-500 mt-3">Your Balance</p>
+        <h1 class="font-display text-4xl font-bold grad-text mt-1 font-mono">${fmtUsd(user.balance)}</h1>
+        <p class="text-xs text-gray-500 mt-2">Lifetime earned&nbsp;<span class="font-mono">${fmtUsd(user.total_earned)}</span></p>
       </div>
-      <div class="flex justify-between gap-1.5 mb-4">${streakDots}</div>
-      <button id="btn-checkin" class="w-full btn-primary py-3 text-sm ${user.checked_in_today ? "opacity-40 pointer-events-none" : "pulse"}">
-        ${user.checked_in_today ? "✓ Checked in today" : "Claim Daily Reward"}
+
+      <div class="border-t border-white/10 mt-5 pt-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-display font-semibold text-sm">Daily Streak</h3>
+          <span class="text-xs text-violet font-mono font-medium">${user.streak_count} day${user.streak_count === 1 ? "" : "s"}</span>
+        </div>
+        <div class="flex justify-between gap-1.5 mb-4">${streakDots}</div>
+        <button id="btn-checkin" class="w-full btn-primary py-3 text-sm ${user.checked_in_today ? "opacity-40 pointer-events-none" : "pulse"}">
+          ${user.checked_in_today ? "✓ Checked in today" : "Claim Daily Reward"}
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="grid grid-cols-3 gap-2.5 mt-4">
+      <button data-goto="earn" class="card p-3.5 text-center">
+        <div class="w-8 h-8 mx-auto rounded-lg bg-mint/10 border border-mint/40 flex items-center justify-center text-mint text-sm mb-2">▶</div>
+        <p class="font-semibold text-[11.5px]">Watch &amp; Earn</p>
+      </button>
+      <button data-goto="invite" class="card p-3.5 text-center">
+        <div class="w-8 h-8 mx-auto rounded-lg bg-violet/10 border border-violet/40 flex items-center justify-center text-violet text-sm mb-2">+</div>
+        <p class="font-semibold text-[11.5px]">Invite</p>
+      </button>
+      <button id="btn-support" class="card p-3.5 text-center">
+        <div class="w-8 h-8 mx-auto rounded-lg bg-magenta/10 border border-magenta/40 flex items-center justify-center text-magenta text-sm mb-2">?</div>
+        <p class="font-semibold text-[11.5px]">Support</p>
       </button>
     </div>
 
-    <div class="grid grid-cols-2 gap-3 mt-4">
-      <button data-goto="earn" class="card p-4 text-left">
-        <div class="w-8 h-8 rounded-lg bg-mint/10 border border-mint/40 flex items-center justify-center text-mint text-sm mb-2">▶</div>
-        <p class="font-semibold text-sm">Watch &amp; Earn</p>
-        <p class="text-xs text-gray-500">Watch ads for USDT</p>
-      </button>
-      <button data-goto="invite" class="card p-4 text-left">
-        <div class="w-8 h-8 rounded-lg bg-violet/10 border border-violet/40 flex items-center justify-center text-violet text-sm mb-2">+</div>
-        <p class="font-semibold text-sm">Invite Friends</p>
-        <p class="text-xs text-gray-500">Earn commission</p>
-      </button>
+    <!-- Recent activity (real transaction feed) -->
+    <h3 class="font-display font-semibold mt-5 mb-2.5 text-sm uppercase tracking-[0.1em] text-gray-500">Recent Activity</h3>
+    <div class="card px-4">
+      ${transactions && transactions.length === 0 ? emptyState("No activity yet — start earning!") : activityRows}
     </div>
   `;
 }
@@ -60,29 +109,36 @@ function renderEarn(state) {
 
   const adSection = adStatus
     ? `
-      <div class="card-feature p-4 flex items-center justify-between">
-        <div class="flex items-center gap-3 min-w-0 pr-2">
-          <div class="w-9 h-9 rounded-lg bg-mint/10 border border-mint/40 flex items-center justify-center text-mint text-sm shrink-0">▶</div>
-          <div class="min-w-0">
-            <p class="font-semibold text-xs tracking-wide">Watch Ad for USDT</p>
-            <p class="text-[11px] text-violet mt-0.5 font-mono">${fmtUsd(adStatus.reward_per_ad)} <span class="text-gray-500 font-body">• ${adStatus.watched_today}/${adStatus.daily_limit} today</span></p>
+      <div class="card-feature p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3 min-w-0 pr-2">
+            <div class="w-9 h-9 rounded-lg bg-mint/10 border border-mint/40 flex items-center justify-center text-mint text-sm shrink-0">▶</div>
+            <div class="min-w-0">
+              <p class="font-semibold text-xs tracking-wide">Watch Ad for USDT</p>
+              <p class="text-[11px] text-violet mt-0.5 font-mono">${fmtUsd(adStatus.reward_per_ad)} <span class="text-gray-500 font-body">per view</span></p>
+            </div>
           </div>
+          <button id="btn-watch-ad" class="btn-task shrink-0 ${adStatus.watched_today >= adStatus.daily_limit ? "btn-secondary opacity-40 pointer-events-none" : "btn-primary"} px-3.5 py-2 text-xs font-semibold">
+            ${adStatus.watched_today >= adStatus.daily_limit ? "✓ Done" : "Watch"}
+          </button>
         </div>
-        <button id="btn-watch-ad" class="btn-task shrink-0 ${adStatus.watched_today >= adStatus.daily_limit ? "btn-secondary opacity-40 pointer-events-none" : "btn-primary"} px-3.5 py-2 text-xs font-semibold">
-          ${adStatus.watched_today >= adStatus.daily_limit ? "✓ Done" : "Watch"}
-        </button>
+        <div class="flex items-center gap-2">
+          <div class="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-violet to-magenta rounded-full" style="width:${Math.min(100, (adStatus.watched_today / adStatus.daily_limit) * 100)}%"></div>
+          </div>
+          <span class="text-[11px] text-gray-500 font-mono shrink-0">${adStatus.watched_today}/${adStatus.daily_limit}</span>
+        </div>
       </div>
     `
     : skeletonBlock();
 
   const taskList = tasks
-    ? `<div class="card px-4 ">` + tasks.map(t => `
+    ? `<div class="card px-4">` + tasks.map(t => `
         <div class="row-item">
           <div class="flex-1 min-w-0">
             <p class="font-semibold text-sm truncate">${t.title}</p>
             <p class="text-xs text-gray-500 truncate">${t.description || ""}</p>
           </div>
-          
           <button data-task-id="${t.id}" data-task-url="${t.url}"
             class="btn-task shrink-0 font-mono ${t.completed ? "btn-secondary opacity-40 pointer-events-none" : "btn-primary"} px-4 py-2 text-xs font-semibold">
             ${t.completed ? "✓ Done" : `+${t.reward.toFixed(3)}`}
@@ -102,6 +158,10 @@ function renderEarn(state) {
 function renderWallet(state) {
   const { user, walletConfig, withdrawals } = state;
   if (!user || !walletConfig) return skeletonBlock();
+
+  const totalWithdrawn = (withdrawals || [])
+    .filter(w => w.status === "approved")
+    .reduce((sum, w) => sum + w.amount, 0);
 
   const tierButtons = walletConfig.tiers.map(t => `
     <button data-amount="${t}" class="tier-btn card py-3 text-sm font-semibold text-center">$${t}</button>
@@ -123,9 +183,19 @@ function renderWallet(state) {
   const isBinance = selectedMethod === 'binance_pay';
 
   return `
-    <div class="card-feature p-5 mt-2 text-center">
+    <div class="card-hero p-5 mt-2 text-center">
       <p class="text-[11px] uppercase tracking-[0.14em] text-gray-500">Available to Withdraw</p>
-      <h2 class="font-display text-3xl font-bold mt-1 font-mono">${fmtUsd(user.balance)}</h2>
+      <h2 class="font-display text-3xl font-bold mt-1 font-mono grad-text">${fmtUsd(user.balance)}</h2>
+      <div class="grid grid-cols-2 gap-2.5 mt-4 pt-4 border-t border-white/10">
+        <div>
+          <p class="font-mono text-sm font-semibold">${fmtUsd(user.total_earned)}</p>
+          <p class="text-[10.5px] text-gray-500 mt-0.5">Total earned</p>
+        </div>
+        <div>
+          <p class="font-mono text-sm font-semibold">$${totalWithdrawn.toFixed(2)}</p>
+          <p class="text-[10.5px] text-gray-500 mt-0.5">Total withdrawn</p>
+        </div>
+      </div>
     </div>
 
     <div class="card p-5 mt-4">
@@ -155,8 +225,17 @@ function renderWallet(state) {
 
     <div class="card p-5 mt-4">
       <h3 class="font-display font-semibold mb-1">Payout History</h3>
-      ${withdrawals && withdrawals.length === 0 ? emptyState("No withdrawals yet.") : `<div class="">${historyRows}</div>`}
+      ${withdrawals && withdrawals.length === 0 ? emptyState("No withdrawals yet.") : `<div>${historyRows}</div>`}
     </div>
+
+    ${walletConfig.support_username ? `
+    <button id="btn-support" class="w-full card p-4 mt-4 flex items-center gap-3 text-left">
+      <div class="w-9 h-9 rounded-lg bg-magenta/10 border border-magenta/40 flex items-center justify-center text-magenta text-sm shrink-0">?</div>
+      <div class="min-w-0">
+        <p class="text-sm font-semibold">Need help with a withdrawal?</p>
+        <p class="text-xs text-gray-500">Contact @${walletConfig.support_username.replace('@','')}</p>
+      </div>
+    </button>` : ""}
   `;
 }
 
@@ -171,17 +250,17 @@ function renderInvite(state) {
   if (!referral) return skeletonBlock();
 
   const recentRows = referral.recent_referrals.length
-    ? `<div class="">` + referral.recent_referrals.map(r => `
+    ? `<div>` + referral.recent_referrals.map(r => `
         <div class="row-item">
-          <p class="text-sm truncate">${r.first_name || "User"} ${r.username ? "@" + r.username : ""}</p>
-          
+          <div class="w-8 h-8 rounded-lg bg-magenta/10 border border-magenta/40 flex items-center justify-center text-magenta text-xs shrink-0 font-semibold">${(r.first_name || "U")[0].toUpperCase()}</div>
+          <p class="text-sm truncate flex-1">${r.first_name || "User"} ${r.username ? "@" + r.username : ""}</p>
           <p class="text-xs text-violet font-mono shrink-0">+${fmtUsd(r.total_commission)}</p>
         </div>
       `).join("") + `</div>`
     : emptyState("No referrals yet — share your link!");
 
   return `
-    <div class="card-feature p-6 mt-2 text-center">
+    <div class="card-hero p-6 mt-2 text-center">
       <span class="pill-chip mb-3">Referral Program</span>
       <h3 class="font-display font-semibold text-lg mt-3 mb-1">Invite &amp; earn <span class="font-mono">${fmtUsd(referral.referral_fixed_reward)}</span> + ${referral.commission_percent}%</h3>
       <p class="text-sm text-gray-400">Get <span class="font-mono">${fmtUsd(referral.referral_fixed_reward)}</span> per invite, plus ${referral.commission_percent}% commission on their activity.</p>
