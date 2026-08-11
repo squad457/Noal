@@ -11,16 +11,19 @@ const state = {
   withdrawals: null,
   referral: null,
   transactions: null,
+  spinStatus: null,
+  scratchStatus: null,
 };
 
 const views = {
   home: () => document.getElementById("view-home"),
   earn: () => document.getElementById("view-earn"),
+  games: () => document.getElementById("view-games"),
   wallet: () => document.getElementById("view-wallet"),
   invite: () => document.getElementById("view-invite"),
 };
 
-const renderers = { home: renderHome, earn: renderEarn, wallet: renderWallet, invite: renderInvite };
+const renderers = { home: renderHome, earn: renderEarn, games: renderGames, wallet: renderWallet, invite: renderInvite };
 
 function showToast(message, type = "success") {
   const toast = document.getElementById("toast");
@@ -56,6 +59,10 @@ async function loadTabData(tab) {
       const [adStatus, tasks] = await Promise.all([Api.adStatus(), Api.listTasks()]);
       state.adStatus = adStatus;
       state.tasks = tasks;
+    } else if (tab === "games") {
+      const [spinStatus, scratchStatus] = await Promise.all([Api.spinStatus(), Api.scratchStatus()]);
+      state.spinStatus = spinStatus;
+      state.scratchStatus = scratchStatus;
     } else if (tab === "wallet") {
       const [user, walletConfig, withdrawals] = await Promise.all([
         Api.syncUser(), Api.walletConfig(), Api.withdrawalHistory(),
@@ -118,6 +125,18 @@ document.addEventListener("click", async (e) => {
       state.user = await Api.syncUser();
       renderActiveTab();
     } catch (err) { showToast(err.message, "error"); }
+    return;
+  }
+
+  // Spin the wheel
+  if (e.target.closest("#btn-spin-wheel")) {
+    handleSpinClick();
+    return;
+  }
+
+  // Play the scratch card
+  if (e.target.closest("#btn-scratch-play")) {
+    handleScratchClick();
     return;
   }
 

@@ -11,6 +11,12 @@ class TaskCompletePayload(BaseModel):
     task_id: int
 
 
+class GamePlayPayload(BaseModel):
+    """Sent when playing Spin or Scratch. ad_reward_event is required only once the
+    user's free daily plays are used up and the game requires watching an ad to continue."""
+    ad_reward_event: str | None = None
+
+
 class WithdrawalRequest(BaseModel):
     amount: float
     method: str = Field(default="binance_pay", pattern="^(binance_pay|usdt_address)$")
@@ -53,6 +59,39 @@ class SettingsUpdate(BaseModel):
     support_username: str | None = None
     maintenance_mode: bool | None = None
     maintenance_message: str | None = None
+    adsgram_debug: bool | None = None
+
+    spin_enabled: bool | None = None
+    spin_min_reward: float | None = None
+    spin_max_reward: float | None = None
+    spin_segments: list[float] | None = None
+    spin_daily_free_spins: int | None = None
+    spin_max_daily_spins: int | None = None
+    spin_require_ad_after_free: bool | None = None
+    spin_cooldown_seconds: int | None = None
+
+    scratch_enabled: bool | None = None
+    scratch_min_reward: float | None = None
+    scratch_max_reward: float | None = None
+    scratch_daily_free: int | None = None
+    scratch_max_daily: int | None = None
+    scratch_require_ad_after_free: bool | None = None
+
+    @field_validator("spin_max_reward")
+    @classmethod
+    def check_spin_range(cls, v, info):
+        min_v = info.data.get("spin_min_reward")
+        if v is not None and min_v is not None and v < min_v:
+            raise ValueError("spin_max_reward must be >= spin_min_reward")
+        return v
+
+    @field_validator("scratch_max_reward")
+    @classmethod
+    def check_scratch_range(cls, v, info):
+        min_v = info.data.get("scratch_min_reward")
+        if v is not None and min_v is not None and v < min_v:
+            raise ValueError("scratch_max_reward must be >= scratch_min_reward")
+        return v
 
 
 class UserAdjustBalance(BaseModel):

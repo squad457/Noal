@@ -82,6 +82,7 @@ async function renderTab(tab) {
     else if (tab === "withdrawals") await renderWithdrawals(body);
     else if (tab === "users") await renderUsers(body);
     else if (tab === "tasks") await renderTasks(body);
+    else if (tab === "games") await renderGamesAdmin(body);
     else if (tab === "settings") await renderSettings(body);
     else if (tab === "broadcast") await renderBroadcast(body);
   } catch (err) {
@@ -102,6 +103,10 @@ async function renderOverview(body) {
       <div class="glass-card stat-card"><p class="v">${fmtUsd(s.pending_withdrawal_amount)}</p><p class="l">Pending Amount</p></div>
       <div class="glass-card stat-card"><p class="v">${s.total_ads_watched}</p><p class="l">Ads Watched</p></div>
       <div class="glass-card stat-card"><p class="v">${s.total_referrals}</p><p class="l">Total Referrals</p></div>
+      <div class="glass-card stat-card"><p class="v">${s.total_spins}</p><p class="l">Spins Played</p></div>
+      <div class="glass-card stat-card"><p class="v">${fmtUsd(s.total_spin_payout)}</p><p class="l">Spin Payout</p></div>
+      <div class="glass-card stat-card"><p class="v">${s.total_scratches}</p><p class="l">Scratches Played</p></div>
+      <div class="glass-card stat-card"><p class="v">${fmtUsd(s.total_scratch_payout)}</p><p class="l">Scratch Payout</p></div>
     </div>
     ${s.banned_users > 0 ? `<p class="text-xs text-red-400 mt-3">${s.banned_users} banned user${s.banned_users === 1 ? "" : "s"}</p>` : ""}
   `;
@@ -238,6 +243,8 @@ async function renderSettings(body) {
       <div class="admin-field"><label>Reward per Ad (USDT)</label><input id="set-ad-reward" type="number" step="0.0001" value="${s.ad_reward_usdt}" /></div>
       <div class="admin-field"><label>Daily Limit per User</label><input id="set-ad-limit" type="number" value="${s.ad_daily_limit}" /></div>
       <div class="admin-field"><label>Cooldown Between Ads (seconds)</label><input id="set-ad-cooldown" type="number" value="${s.ad_cooldown_seconds}" /></div>
+      ${toggleRow("set-adsgram-debug", "Debug / Test Mode", "⚠️ Leave OFF in production — Adsgram never counts debug views or fires your Reward URL for them. This is a common cause of an account showing 0 real conversions.", s.adsgram_debug)}
+      <p class="text-xs text-gray-500 mt-2">Set your Adsgram block's <b>Postback / Reward URL</b> to:<br><code class="text-[11px] break-all">https://your-backend/api/ads/p?userid=[userId]</code><br>No signature needed — that's the only macro Adsgram actually sends.</p>
     </div>
 
     <h3 class="admin-sect">Referrals</h3>
@@ -292,6 +299,7 @@ async function saveAllSettings() {
     ad_reward_usdt: parseFloat(document.getElementById("set-ad-reward").value),
     ad_daily_limit: parseInt(document.getElementById("set-ad-limit").value, 10),
     ad_cooldown_seconds: parseInt(document.getElementById("set-ad-cooldown").value, 10),
+    adsgram_debug: document.getElementById("set-adsgram-debug").checked,
     referral_commission_percent: parseFloat(document.getElementById("set-ref-commission").value),
     referral_signup_bonus: parseFloat(document.getElementById("set-ref-bonus").value),
     referral_fixed_reward: parseFloat(document.getElementById("set-ref-fixed").value),
@@ -306,6 +314,64 @@ async function saveAllSettings() {
   try {
     await adminApi("/api/admin/settings", { method: "POST", body: payload });
     showToast("Settings saved!");
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+// ---------- Games (Spin & Scratch) ----------
+async function renderGamesAdmin(body) {
+  const s = await adminApi("/api/admin/settings");
+  body.innerHTML = `
+    <h3 class="admin-sect mt-2">🎡 Spin Wheel</h3>
+    <div class="glass-card p-5">
+      ${toggleRow("set-spin-enabled", "Spin Wheel Enabled", "", s.spin_enabled)}
+      <div class="admin-field"><label>Payout Range — Min (USDT)</label><input id="set-spin-min" type="number" step="0.0001" value="${s.spin_min_reward}" /></div>
+      <div class="admin-field"><label>Payout Range — Max (USDT)</label><input id="set-spin-max" type="number" step="0.0001" value="${s.spin_max_reward}" /></div>
+      <p class="text-xs text-gray-500 -mt-1 mb-3">Every spin pays a random amount inside this range, regardless of which segment it visually lands on.</p>
+      <div class="admin-field"><label>Wheel Segment Numbers (comma-separated, 6-8+ slots — cosmetic only)</label><input id="set-spin-segments" type="text" value="${s.spin_segments.join(",")}" /></div>
+      <div class="admin-field"><label>Free Spins per Day</label><input id="set-spin-free" type="number" value="${s.spin_daily_free_spins}" /></div>
+      <div class="admin-field"><label>Max Spins per Day (0 = unlimited via ads)</label><input id="set-spin-max-daily" type="number" value="${s.spin_max_daily_spins}" /></div>
+      ${toggleRow("set-spin-require-ad", "Require Ad After Free Spins", "User must watch a rewarded ad to spin again once free spins are used", s.spin_require_ad_after_free)}
+      <div class="admin-field"><label>Cooldown Between Spins (seconds)</label><input id="set-spin-cooldown" type="number" value="${s.spin_cooldown_seconds}" /></div>
+    </div>
+
+    <h3 class="admin-sect">🎫 Scratch Card</h3>
+    <div class="glass-card p-5">
+      ${toggleRow("set-scratch-enabled", "Scratch Card Enabled", "", s.scratch_enabled)}
+      <div class="admin-field"><label>Payout Range — Min (USDT)</label><input id="set-scratch-min" type="number" step="0.0001" value="${s.scratch_min_reward}" /></div>
+      <div class="admin-field"><label>Payout Range — Max (USDT)</label><input id="set-scratch-max" type="number" step="0.0001" value="${s.scratch_max_reward}" /></div>
+      <div class="admin-field"><label>Free Plays per Day</label><input id="set-scratch-free" type="number" value="${s.scratch_daily_free}" /></div>
+      <div class="admin-field"><label>Max Plays per Day (0 = unlimited via ads)</label><input id="set-scratch-max-daily" type="number" value="${s.scratch_max_daily}" /></div>
+      ${toggleRow("set-scratch-require-ad", "Require Ad After Free Plays", "", s.scratch_require_ad_after_free)}
+    </div>
+
+    <button id="btn-save-games" class="w-full btn-primary py-3.5 text-sm mt-2 mb-4">💾 Save Game Settings</button>
+  `;
+}
+
+async function saveGameSettings() {
+  const payload = {
+    spin_enabled: document.getElementById("set-spin-enabled").checked,
+    spin_min_reward: parseFloat(document.getElementById("set-spin-min").value),
+    spin_max_reward: parseFloat(document.getElementById("set-spin-max").value),
+    spin_segments: document.getElementById("set-spin-segments").value.split(",").map(s => parseFloat(s.trim())).filter(n => !isNaN(n)),
+    spin_daily_free_spins: parseInt(document.getElementById("set-spin-free").value, 10),
+    spin_max_daily_spins: parseInt(document.getElementById("set-spin-max-daily").value, 10),
+    spin_require_ad_after_free: document.getElementById("set-spin-require-ad").checked,
+    spin_cooldown_seconds: parseInt(document.getElementById("set-spin-cooldown").value, 10),
+
+    scratch_enabled: document.getElementById("set-scratch-enabled").checked,
+    scratch_min_reward: parseFloat(document.getElementById("set-scratch-min").value),
+    scratch_max_reward: parseFloat(document.getElementById("set-scratch-max").value),
+    scratch_daily_free: parseInt(document.getElementById("set-scratch-free").value, 10),
+    scratch_max_daily: parseInt(document.getElementById("set-scratch-max-daily").value, 10),
+    scratch_require_ad_after_free: document.getElementById("set-scratch-require-ad").checked,
+  };
+  if (payload.spin_segments.length < 2) { showToast("Add at least a couple of wheel segments", "error"); return; }
+  try {
+    await adminApi("/api/admin/settings", { method: "POST", body: payload });
+    showToast("Game settings saved!");
   } catch (err) {
     showToast(err.message, "error");
   }
@@ -417,6 +483,12 @@ document.addEventListener("click", async (e) => {
   // Save settings
   if (e.target.closest("#btn-save-settings")) {
     saveAllSettings();
+    return;
+  }
+
+  // Save game settings
+  if (e.target.closest("#btn-save-games")) {
+    saveGameSettings();
     return;
   }
 

@@ -88,6 +88,27 @@ CREATE TABLE IF NOT EXISTS ad_events (
     FOREIGN KEY (telegram_id) REFERENCES users(telegram_id)
 );
 
+CREATE TABLE IF NOT EXISTS game_events (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    telegram_id  INTEGER NOT NULL,
+    game_type    TEXT NOT NULL,      -- 'spin' | 'scratch'
+    amount       REAL NOT NULL,
+    used_ad      INTEGER NOT NULL DEFAULT 0,  -- 1 if this play was unlocked by watching an ad
+    meta         TEXT,               -- JSON string, e.g. {"landed_index": 3}
+    created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (telegram_id) REFERENCES users(telegram_id)
+);
+
+CREATE TABLE IF NOT EXISTS game_ad_unlocks (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    telegram_id  INTEGER NOT NULL,
+    game_type    TEXT NOT NULL,
+    reward_event TEXT NOT NULL,      -- Adsgram event id that unlocked this extra play
+    created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(game_type, reward_event),
+    FOREIGN KEY (telegram_id) REFERENCES users(telegram_id)
+);
+
 CREATE TABLE IF NOT EXISTS referrals (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     referrer_id      INTEGER NOT NULL,
@@ -108,6 +129,7 @@ CREATE INDEX IF NOT EXISTS idx_withdrawals_user ON withdrawals(telegram_id);
 CREATE INDEX IF NOT EXISTS idx_withdrawals_status ON withdrawals(status);
 CREATE INDEX IF NOT EXISTS idx_ad_events_user_date ON ad_events(telegram_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_game_events_user_date ON game_events(telegram_id, game_type, created_at);
 """
 
 
@@ -129,6 +151,25 @@ DEFAULT_SETTINGS = {
     "support_username": "",
     "maintenance_mode": "0",
     "maintenance_message": "We'll be back shortly — thanks for your patience!",
+    "adsgram_debug": "1" if settings.ADSGRAM_DEBUG else "0",
+
+    # Spin Wheel
+    "spin_enabled": "1" if settings.SPIN_ENABLED else "0",
+    "spin_min_reward": str(settings.SPIN_MIN_REWARD),
+    "spin_max_reward": str(settings.SPIN_MAX_REWARD),
+    "spin_segments": ",".join(str(x) for x in settings.SPIN_SEGMENTS),
+    "spin_daily_free_spins": str(settings.SPIN_DAILY_FREE_SPINS),
+    "spin_max_daily_spins": str(settings.SPIN_MAX_DAILY_SPINS),
+    "spin_require_ad_after_free": "1" if settings.SPIN_REQUIRE_AD_AFTER_FREE else "0",
+    "spin_cooldown_seconds": str(settings.SPIN_COOLDOWN_SECONDS),
+
+    # Scratch Card
+    "scratch_enabled": "1" if settings.SCRATCH_ENABLED else "0",
+    "scratch_min_reward": str(settings.SCRATCH_MIN_REWARD),
+    "scratch_max_reward": str(settings.SCRATCH_MAX_REWARD),
+    "scratch_daily_free": str(settings.SCRATCH_DAILY_FREE),
+    "scratch_max_daily": str(settings.SCRATCH_MAX_DAILY),
+    "scratch_require_ad_after_free": "1" if settings.SCRATCH_REQUIRE_AD_AFTER_FREE else "0",
 }
 
 
@@ -189,6 +230,23 @@ async def get_settings(db) -> dict:
         "support_username": raw.get("support_username", ""),
         "maintenance_mode": _b("maintenance_mode", False),
         "maintenance_message": raw.get("maintenance_message", ""),
+        "adsgram_debug": _b("adsgram_debug", settings.ADSGRAM_DEBUG),
+
+        "spin_enabled": _b("spin_enabled", settings.SPIN_ENABLED),
+        "spin_min_reward": _f("spin_min_reward", settings.SPIN_MIN_REWARD),
+        "spin_max_reward": _f("spin_max_reward", settings.SPIN_MAX_REWARD),
+        "spin_segments": _list_f("spin_segments", settings.SPIN_SEGMENTS),
+        "spin_daily_free_spins": _i("spin_daily_free_spins", settings.SPIN_DAILY_FREE_SPINS),
+        "spin_max_daily_spins": _i("spin_max_daily_spins", settings.SPIN_MAX_DAILY_SPINS),
+        "spin_require_ad_after_free": _b("spin_require_ad_after_free", settings.SPIN_REQUIRE_AD_AFTER_FREE),
+        "spin_cooldown_seconds": _i("spin_cooldown_seconds", settings.SPIN_COOLDOWN_SECONDS),
+
+        "scratch_enabled": _b("scratch_enabled", settings.SCRATCH_ENABLED),
+        "scratch_min_reward": _f("scratch_min_reward", settings.SCRATCH_MIN_REWARD),
+        "scratch_max_reward": _f("scratch_max_reward", settings.SCRATCH_MAX_REWARD),
+        "scratch_daily_free": _i("scratch_daily_free", settings.SCRATCH_DAILY_FREE),
+        "scratch_max_daily": _i("scratch_max_daily", settings.SCRATCH_MAX_DAILY),
+        "scratch_require_ad_after_free": _b("scratch_require_ad_after_free", settings.SCRATCH_REQUIRE_AD_AFTER_FREE),
     }
 
 

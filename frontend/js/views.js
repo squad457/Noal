@@ -154,6 +154,16 @@ function renderEarn(state) {
   `;
 }
 
+// ---------- GAMES ----------
+function renderGames(state) {
+  return `
+    <div class="mt-1">
+      ${renderSpinWheel(state.spinStatus)}
+      ${renderScratchCard(state.scratchStatus)}
+    </div>
+  `;
+}
+
 // ---------- WALLET ----------
 function renderWallet(state) {
   const { user, walletConfig, withdrawals } = state;

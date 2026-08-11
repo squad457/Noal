@@ -47,4 +47,12 @@ const Api = {
   withdrawalHistory: () => apiRequest("/api/wallet/withdrawals"),
 
   referralStats: () => apiRequest("/api/referral/stats"),
+
+  spinStatus: () => apiRequest("/api/games/spin/status"),
+  spinPlay: (ad_reward_event) =>
+    apiRequest("/api/games/spin/play", { method: "POST", body: { ad_reward_event } }),
+
+  scratchStatus: () => apiRequest("/api/games/scratch/status"),
+  scratchPlay: (ad_reward_event) =>
+    apiRequest("/api/games/scratch/play", { method: "POST", body: { ad_reward_event } }),
 };

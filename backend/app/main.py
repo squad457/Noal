@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.bot import run_bot, stop_bot
 from app.config import settings
 from app.database import init_db
-from app.routers import admin, ads, referral, tasks, users, wallet
+from app.routers import admin, ads, games, referral, tasks, users, wallet
 
 logger = logging.getLogger("uvicorn")
 
@@ -54,6 +54,7 @@ app.add_middleware(
 
 app.include_router(users.router)
 app.include_router(ads.router)
+app.include_router(games.router)
 app.include_router(tasks.router)
 app.include_router(wallet.router)
 app.include_router(referral.router)

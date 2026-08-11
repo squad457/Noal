@@ -38,9 +38,15 @@ class Settings:
 
     # --- Adsgram ---
     ADSGRAM_BLOCK_ID: str = os.getenv("ADSGRAM_BLOCK_ID", "")
-    # Adsgram signs server-to-server postback calls with this secret (set the same value
-    # in your Adsgram dashboard's "Reward callback" settings)
+    # Optional: only needed if your Adsgram plan supports signed postbacks.
+    # By default Adsgram's Reward URL only substitutes a bare `[userId]` macro with
+    # NO signature (see /api/ads/p) — this secret is only used if you've added a
+    # custom `signature` param yourself in front of Adsgram (e.g. via a proxy/tracker).
     ADSGRAM_CALLBACK_SECRET: str = os.getenv("ADSGRAM_CALLBACK_SECRET", "change-me")
+    # Debug/test mode passed to the Adsgram SDK. IMPORTANT: Adsgram does NOT count debug
+    # impressions in your stats and never fires the Reward URL for them — leaving this on
+    # is a common cause of an account showing 0 real conversions. Must be off in production.
+    ADSGRAM_DEBUG: bool = os.getenv("ADSGRAM_DEBUG", "0") == "1"
 
     # --- Economy ---
     AD_REWARD_USDT: float = float(os.getenv("AD_REWARD_USDT", "0.003"))
@@ -55,6 +61,28 @@ class Settings:
 
     # Daily check-in streak rewards, index 0 = day 1 ... index 6 = day 7 (then it loops)
     STREAK_REWARDS: list[float] = [0.002, 0.003, 0.004, 0.005, 0.006, 0.008, 0.02]
+
+    # --- Spin Wheel game ---
+    SPIN_ENABLED: bool = os.getenv("SPIN_ENABLED", "1") == "1"
+    # Every spin (regardless of which segment it visually lands on) pays a random
+    # amount inside this range — the admin controls the payout economics here,
+    # not through the segment labels, which are purely cosmetic display numbers.
+    SPIN_MIN_REWARD: float = float(os.getenv("SPIN_MIN_REWARD", "0.002"))
+    SPIN_MAX_REWARD: float = float(os.getenv("SPIN_MAX_REWARD", "0.01"))
+    # Cosmetic numbers shown on the wheel segments (admin-editable, 6-8+ slots recommended)
+    SPIN_SEGMENTS: list[float] = [0.002, 0.02, 0.004, 0.05, 0.003, 0.008, 0.006, 0.01]
+    SPIN_DAILY_FREE_SPINS: int = int(os.getenv("SPIN_DAILY_FREE_SPINS", "1"))
+    SPIN_MAX_DAILY_SPINS: int = int(os.getenv("SPIN_MAX_DAILY_SPINS", "5"))  # 0 = unlimited (still gated by ads)
+    SPIN_REQUIRE_AD_AFTER_FREE: bool = os.getenv("SPIN_REQUIRE_AD_AFTER_FREE", "1") == "1"
+    SPIN_COOLDOWN_SECONDS: int = int(os.getenv("SPIN_COOLDOWN_SECONDS", "3"))
+
+    # --- Scratch Card game ---
+    SCRATCH_ENABLED: bool = os.getenv("SCRATCH_ENABLED", "1") == "1"
+    SCRATCH_MIN_REWARD: float = float(os.getenv("SCRATCH_MIN_REWARD", "0.002"))
+    SCRATCH_MAX_REWARD: float = float(os.getenv("SCRATCH_MAX_REWARD", "0.008"))
+    SCRATCH_DAILY_FREE: int = int(os.getenv("SCRATCH_DAILY_FREE", "1"))
+    SCRATCH_MAX_DAILY: int = int(os.getenv("SCRATCH_MAX_DAILY", "5"))
+    SCRATCH_REQUIRE_AD_AFTER_FREE: bool = os.getenv("SCRATCH_REQUIRE_AD_AFTER_FREE", "1") == "1"
 
     # --- Security ---
     # Reject Telegram initData older than this (seconds) to prevent replay attacks

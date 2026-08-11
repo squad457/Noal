@@ -43,6 +43,18 @@ async def platform_stats():
         )).fetchone())["t"]
         total_ads_watched = (await (await db.execute("SELECT COUNT(*) as c FROM ad_events")).fetchone())["c"]
         total_referrals = (await (await db.execute("SELECT COUNT(*) as c FROM referrals")).fetchone())["c"]
+        total_spins = (await (await db.execute(
+            "SELECT COUNT(*) as c FROM game_events WHERE game_type='spin'"
+        )).fetchone())["c"]
+        total_spin_payout = (await (await db.execute(
+            "SELECT COALESCE(SUM(amount),0) as t FROM game_events WHERE game_type='spin'"
+        )).fetchone())["t"]
+        total_scratches = (await (await db.execute(
+            "SELECT COUNT(*) as c FROM game_events WHERE game_type='scratch'"
+        )).fetchone())["c"]
+        total_scratch_payout = (await (await db.execute(
+            "SELECT COALESCE(SUM(amount),0) as t FROM game_events WHERE game_type='scratch'"
+        )).fetchone())["t"]
         # users active in the last 24h based on their most recent transaction
         active_today = (await (await db.execute(
             "SELECT COUNT(DISTINCT telegram_id) as c FROM transactions WHERE created_at >= datetime('now', '-1 day')"
@@ -57,6 +69,10 @@ async def platform_stats():
         "pending_withdrawal_amount": round(pending_amount, 2),
         "total_ads_watched": total_ads_watched,
         "total_referrals": total_referrals,
+        "total_spins": total_spins,
+        "total_spin_payout": round(total_spin_payout, 4),
+        "total_scratches": total_scratches,
+        "total_scratch_payout": round(total_scratch_payout, 4),
     }
 
 
