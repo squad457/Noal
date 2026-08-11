@@ -343,7 +343,7 @@ async function renderGamesAdmin(body) {
       <div class="admin-field"><label>Payout Range — Max (USDT)</label><input id="set-scratch-max" type="number" step="0.0001" value="${s.scratch_max_reward}" /></div>
       <div class="admin-field"><label>Free Plays per Day</label><input id="set-scratch-free" type="number" value="${s.scratch_daily_free}" /></div>
       <div class="admin-field"><label>Max Plays per Day (0 = unlimited via ads)</label><input id="set-scratch-max-daily" type="number" value="${s.scratch_max_daily}" /></div>
-      <div class="admin-field"><label>Winning Cells per Card (out of 9 — min taps needed to win)</label><input id="set-scratch-winning-cells" type="number" min="1" max="9" value="${s.scratch_winning_cells}" /></div>
+      <div class="admin-field"><label>Hidden Diamonds per Card (out of 9 — players always get exactly 3 taps; more diamonds = easier to hit some)</label><input id="set-scratch-winning-cells" type="number" min="1" max="9" value="${s.scratch_winning_cells}" /></div>
       ${toggleRow("set-scratch-require-ad", "Require Ad After Free Plays", "", s.scratch_require_ad_after_free)}
     </div>
 

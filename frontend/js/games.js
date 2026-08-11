@@ -13,10 +13,13 @@ const WHEEL_ACCENT_COLOR = "#F0B90B"; // single gold "jackpot" slice for visual 
 let wheelRotation = 0;
 let wheelSpinning = false;
 let scratchBusy = false;
-// A scratch round the server has already resolved, waiting for the player
-// to tap cells to reveal it. Null when no round is in progress.
-let scratchPending = null; // { reward, winningCells: Set<number> }
-let scratchRevealed = new Set();
+// A round in progress. The player picks exactly SCRATCH_TAPS_ALLOWED cells
+// (their choice, out of 9) *before* the server decides anything — this keeps
+// each round genuinely random instead of a predetermined result the UI just
+// animates through. `resolved` is filled in only after the server responds
+// to the 3rd pick. Null when no round is in progress.
+const SCRATCH_TAPS_ALLOWED = 3;
+let scratchPending = null; // { adEvent, selected: number[], resolved: {reward, diamondCells:Set, matchedCells:Set, hits} | null }
 
 function fmtUsdG(n) { return `$${Number(n).toFixed(4)}`; }
 
@@ -127,43 +130,67 @@ async function handleSpinClick() {
 }
 
 // ---------- SCRATCH CARD ----------
-// Cards are tappable: pressing the button resolves the round with the server,
-// then the player scratches individual cells to reveal it — matching 3
-// diamonds finishes the round early (the reward is already locked in either way).
+// Pressing the button starts a round locally: the player picks exactly
+// SCRATCH_TAPS_ALLOWED (3) of the 9 cells, blind. Only once all 3 picks are
+// in do we call the server — which then places the diamonds at random and
+// scores the round — so the diamond layout is never known (by anyone) ahead
+// of the player's choice, and every round it lands somewhere new. Whatever
+// happens, the full board is revealed afterwards so the player can see
+// exactly where the diamonds were, win or lose.
 function renderScratchCard(scratchStatus) {
   if (!scratchStatus) return `<div class="skeleton h-56 w-full mt-4"></div>`;
 
   const canPlayFree = scratchStatus.free_plays_left > 0;
   const inRound = !!scratchPending;
-  // The exact count for the active round comes from the server's play response;
-  // before a round starts we show the admin-configured default from status.
-  const neededCount = inRound ? scratchPending.winningCells.size : (scratchStatus.winning_cells_needed || 3);
-  const btnLabel = inRound
-    ? "Tap the cards to reveal 👆"
-    : scratchStatus.max_reached
-      ? "Come back tomorrow"
-      : canPlayFree
-        ? `Scratch (${scratchStatus.free_plays_left} free left)`
-        : scratchStatus.needs_ad
-          ? "▶ Watch Ad to Scratch"
-          : "Scratch";
+  const resolved = inRound && scratchPending.resolved;
+  const selected = inRound ? scratchPending.selected : [];
+  const tapsAllowed = scratchStatus.taps_allowed || SCRATCH_TAPS_ALLOWED;
+
+  const btnLabel = resolved
+    ? "Revealing…"
+    : inRound
+      ? `Pick ${tapsAllowed - selected.length} more 👆`
+      : scratchStatus.max_reached
+        ? "Come back tomorrow"
+        : canPlayFree
+          ? `Scratch (${scratchStatus.free_plays_left} free left)`
+          : scratchStatus.needs_ad
+            ? "▶ Watch Ad to Scratch"
+            : "Scratch";
   const blocked = scratchStatus.max_reached && !inRound;
 
   const cells = Array.from({ length: 9 }, (_, i) => {
-    const revealed = scratchRevealed.has(i);
-    const isWin = inRound && scratchPending.winningCells.has(i) && revealed;
-    const symbol = revealed ? (isWin ? "💎" : "✖") : "❓";
-    const cls = ["scratch-cell", revealed ? "revealed" : "", isWin ? "win" : "", inRound && !revealed ? "armed" : ""].filter(Boolean).join(" ");
-    return `<div class="${cls}" data-cell="${i}"><span>${symbol}</span></div>`;
+    const isSelected = selected.includes(i);
+    let symbol = "❓";
+    let cls = ["scratch-cell"];
+    if (resolved) {
+      const isDiamond = resolved.diamondCells.has(i);
+      const isMatch = isSelected && isDiamond;
+      symbol = isDiamond ? "💎" : "✖";
+      cls.push("revealed");
+      if (isMatch) cls.push("win");
+      else if (isDiamond) cls.push("missed"); // a diamond the player didn't pick
+      if (isSelected) cls.push("picked");
+    } else if (inRound) {
+      if (isSelected) {
+        symbol = "👆";
+        cls.push("picked");
+      } else if (selected.length < tapsAllowed) {
+        cls.push("armed");
+      }
+    }
+    return `<div class="${cls.join(" ")}" data-cell="${i}"><span>${symbol}</span></div>`;
   }).join("");
 
   return `
     <div class="card-feature p-5 mt-4 text-center">
       <span class="pill-chip mb-3">🎫 Scratch &amp; Win</span>
-      <p class="text-xs text-gray-400 mb-4">Match ${neededCount} diamond${neededCount === 1 ? "" : "s"} to reveal your prize.</p>
+      <p class="text-xs text-gray-400 mb-4">${inRound
+        ? `Choose ${tapsAllowed} boxes — the more diamonds you hit, the bigger your prize.`
+        : `Pick any ${tapsAllowed} of the 9 boxes. Hit diamonds to win — the positions shuffle every round.`}</p>
       <div id="scratch-grid" class="scratch-grid">${cells}</div>
       <button id="btn-scratch-play" class="w-full btn-primary py-3.5 text-sm mt-5 ${blocked || scratchBusy || inRound ? "opacity-40 pointer-events-none" : ""}">
-        ${scratchBusy ? "Revealing…" : btnLabel}
+        ${scratchBusy ? "Starting…" : btnLabel}
       </button>
       <p class="text-[11px] text-gray-500 mt-2">${scratchStatus.played_today} played today${scratchStatus.max_daily ? ` · max ${scratchStatus.max_daily}/day` : ""}</p>
     </div>
@@ -183,9 +210,8 @@ async function handleScratchClick() {
     scratchBusy = true;
     renderActiveTab();
 
-    const res = await Api.scratchPlay(adEvent);
-    scratchRevealed = new Set();
-    scratchPending = { reward: res.reward, winningCells: new Set(res.winning_cells) };
+    // No server call yet — just open the board for the player to pick from.
+    scratchPending = { adEvent, selected: [], resolved: null };
     scratchBusy = false;
     renderActiveTab();
   } catch (err) {
@@ -196,29 +222,42 @@ async function handleScratchClick() {
 }
 
 async function handleScratchCellTap(index) {
-  if (!scratchPending || scratchRevealed.has(index)) return;
+  if (!scratchPending || scratchPending.resolved) return;
+  const tapsAllowed = (state.scratchStatus && state.scratchStatus.taps_allowed) || SCRATCH_TAPS_ALLOWED;
+  if (scratchPending.selected.includes(index) || scratchPending.selected.length >= tapsAllowed) return;
 
-  scratchRevealed.add(index);
-  const needed = scratchPending.winningCells.size;
-  const foundDiamonds = [...scratchRevealed].filter((i) => scratchPending.winningCells.has(i)).length;
+  scratchPending.selected.push(index);
   renderActiveTab();
 
-  // Finish the round once the admin-configured number of diamonds is found
-  // (or every cell has been tapped, whichever comes first).
-  if (foundDiamonds >= needed || scratchRevealed.size >= 9) {
-    const reward = scratchPending.reward;
+  if (scratchPending.selected.length < tapsAllowed) return;
+
+  // All picks made — now (and only now) ask the server to place the
+  // diamonds and score the round.
+  try {
+    const res = await Api.scratchPlay(scratchPending.adEvent, scratchPending.selected);
+    scratchPending.resolved = {
+      reward: res.reward,
+      diamondCells: new Set(res.diamond_cells),
+      matchedCells: new Set(res.matched_cells),
+      hits: res.hits,
+    };
+    renderActiveTab();
+
     setTimeout(async () => {
-      // Flash-reveal any cells the player didn't get to.
-      for (let i = 0; i < 9; i++) scratchRevealed.add(i);
+      const { reward, hits } = scratchPending.resolved;
+      scratchPending = null;
+      if (reward > 0) {
+        showToast(`🎉 ${hits} diamond${hits === 1 ? "" : "s"} — you won ${reward.toFixed(4)} USDT!`);
+      } else {
+        showToast("No diamonds this round — try again!", "error");
+      }
+      state.user = await Api.syncUser();
+      state.scratchStatus = await Api.scratchStatus();
       renderActiveTab();
-      setTimeout(async () => {
-        scratchPending = null;
-        scratchRevealed = new Set();
-        showToast(`🎉 You won ${reward.toFixed(4)} USDT!`);
-        state.user = await Api.syncUser();
-        state.scratchStatus = await Api.scratchStatus();
-        renderActiveTab();
-      }, 500);
-    }, 350);
+    }, 1400);
+  } catch (err) {
+    scratchPending = null;
+    renderActiveTab();
+    showToast(err.message, "error");
   }
 }

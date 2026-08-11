@@ -53,6 +53,6 @@ const Api = {
     apiRequest("/api/games/spin/play", { method: "POST", body: { ad_reward_event } }),
 
   scratchStatus: () => apiRequest("/api/games/scratch/status"),
-  scratchPlay: (ad_reward_event) =>
-    apiRequest("/api/games/scratch/play", { method: "POST", body: { ad_reward_event } }),
+  scratchPlay: (ad_reward_event, cells) =>
+    apiRequest("/api/games/scratch/play", { method: "POST", body: { ad_reward_event, cells } }),
 };

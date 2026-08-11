@@ -13,8 +13,10 @@ class TaskCompletePayload(BaseModel):
 
 class GamePlayPayload(BaseModel):
     """Sent when playing Spin or Scratch. ad_reward_event is required only once the
-    user's free daily plays are used up and the game requires watching an ad to continue."""
+    user's free daily plays are used up and the game requires watching an ad to continue.
+    cells is used by Scratch only: the exact 3 cell indices (0-8) the player tapped."""
     ad_reward_event: str | None = None
+    cells: list[int] | None = None
 
 
 class WithdrawalRequest(BaseModel):
@@ -76,8 +78,9 @@ class SettingsUpdate(BaseModel):
     scratch_daily_free: int | None = None
     scratch_max_daily: int | None = None
     scratch_require_ad_after_free: bool | None = None
-    # How many of the 9 cells are "winning" cells each round (i.e. how many
-    # taps a player needs at minimum to complete a card). 1-9.
+    # How many of the 9 cells are hidden diamonds each round. Players always
+    # get exactly 3 taps regardless of this number; it only tunes difficulty
+    # (more hidden diamonds = easier to hit some of them in 3 taps). 1-9.
     scratch_winning_cells: int | None = None
 
     @field_validator("scratch_winning_cells")

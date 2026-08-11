@@ -9,7 +9,16 @@ Design (per product requirement):
   scatter outside the admin-approved range. Segments outside the range can
   still be shown on the wheel as decorative "near miss" numbers (e.g. a big
   cosmetic jackpot number, or 0.00), but they can never actually be won.
-- Scratch Card still pays a random amount drawn from an admin-set min/max range.
+- Scratch Card: a player always gets exactly 3 taps on the 9-cell board. The
+  admin-configured number of diamonds (scratch_winning_cells) is placed at
+  random positions on the board *after* the player has chosen their 3 cells,
+  so the outcome is genuinely random and can't be predicted or farmed. The
+  reward is tiered by how many of the 3 tapped cells turn out to hold a
+  diamond (0 = no reward, 1 = small, 2 = medium, 3 = the best tier) and is
+  always drawn from a slice that stays fully inside the admin's
+  [scratch_min_reward, scratch_max_reward] range. The full board (all diamond
+  positions, not just the tapped ones) is always returned so the frontend can
+  reveal exactly where the diamonds were, whether the player won or not.
 - Each user gets a small number of free plays per day (admin-configurable).
   Once those are used, playing again requires watching a rewarded Adsgram ad
   first — the frontend calls showRewardedAd() and passes the resulting
@@ -29,6 +38,30 @@ from app.database import get_db, get_settings
 from app.models import GamePlayPayload
 
 router = APIRouter(prefix="/api/games", tags=["games"])
+
+# A round is always exactly 3 taps on the 9-cell board — fixed by game design,
+# not admin-configurable, so the reward tiers below (0/1/2/3 hits) stay meaningful.
+SCRATCH_TAPS_ALLOWED = 3
+
+
+def _scratch_reward_for_hits(hits: int, min_r: float, max_r: float) -> float:
+    """Reward is drawn from a slice of the admin's [min_r, max_r] range sized by
+    how many of the player's 3 taps landed on a diamond. Never leaves that range."""
+    if max_r < min_r:
+        min_r, max_r = max_r, min_r
+    if hits <= 0:
+        return 0.0
+    span = max_r - min_r
+    if hits == 1:
+        lo, hi = min_r, min_r + span / 3
+    elif hits == 2:
+        lo, hi = min_r + span / 3, min_r + span * 2 / 3
+    else:  # hits >= 3 (all taps hit a diamond)
+        lo, hi = min_r + span * 2 / 3, max_r
+    if hi < lo:
+        hi = lo
+    reward = random.uniform(lo, hi)
+    return round(min(max(reward, min_r), max_r), 4)
 
 
 def _today_range():
@@ -196,6 +229,7 @@ async def scratch_status(user: dict = Depends(get_current_user)):
         "max_daily": cfg["scratch_max_daily"],
         "max_reached": max_reached,
         "needs_ad": needs_ad,
+        "taps_allowed": SCRATCH_TAPS_ALLOWED,
         "winning_cells_needed": cfg["scratch_winning_cells"],
     }
 
@@ -203,6 +237,16 @@ async def scratch_status(user: dict = Depends(get_current_user)):
 @router.post("/scratch/play")
 async def scratch_play(payload: GamePlayPayload, user: dict = Depends(get_current_user)):
     telegram_id = user["telegram_id"]
+
+    # Must tap exactly SCRATCH_TAPS_ALLOWED distinct cells out of the 9 on the board.
+    cells = payload.cells or []
+    if len(set(cells)) != SCRATCH_TAPS_ALLOWED or any(c < 0 or c > 8 for c in cells):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Pick exactly {SCRATCH_TAPS_ALLOWED} distinct cells (0-8) to play",
+        )
+    tapped = set(cells)
+
     async with get_db() as db:
         cfg = await get_settings(db)
         if not cfg["scratch_enabled"]:
@@ -217,23 +261,27 @@ async def scratch_play(payload: GamePlayPayload, user: dict = Depends(get_curren
             if cfg["scratch_require_ad_after_free"]:
                 used_ad = await _consume_ad_unlock(db, telegram_id, "scratch", payload.ad_reward_event)
 
-        min_r, max_r = cfg["scratch_min_reward"], cfg["scratch_max_reward"]
-        if max_r < min_r:
-            min_r, max_r = max_r, min_r
-        reward = round(random.uniform(min_r, max_r), 4)
-
-        # 9-cell card; how many cells are the "winning" symbol is admin-configurable
-        # (scratch_winning_cells) so the difficulty/feel can be tuned without a redeploy.
+        # Diamonds are placed at random AFTER the player has already committed to
+        # their 3 cells, so the result is genuinely random each round and can't
+        # be predicted from past rounds — the positions always shuffle.
         winning_count = max(1, min(9, cfg["scratch_winning_cells"]))
-        winning_cells = sorted(random.sample(range(9), winning_count))
+        diamond_cells = set(random.sample(range(9), winning_count))
+
+        hits = len(tapped & diamond_cells)
+        min_r, max_r = cfg["scratch_min_reward"], cfg["scratch_max_reward"]
+        reward = _scratch_reward_for_hits(hits, min_r, max_r)
 
         new_balance = await _credit(
-            db, telegram_id, "scratch", reward, used_ad, {"winning_cells": winning_cells}
+            db, telegram_id, "scratch", reward, used_ad,
+            {"tapped_cells": sorted(tapped), "diamond_cells": sorted(diamond_cells), "hits": hits},
         )
         await db.commit()
 
     return {
         "reward": reward,
         "new_balance": round(new_balance, 4),
-        "winning_cells": winning_cells,
+        "tapped_cells": sorted(tapped),
+        "diamond_cells": sorted(diamond_cells),
+        "matched_cells": sorted(tapped & diamond_cells),
+        "hits": hits,
     }

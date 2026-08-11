@@ -382,6 +382,22 @@ h1, h2, h3, .font-display { font-family: 'Sora', sans-serif; }
   border-color: rgba(61,220,151,0.5);
   box-shadow: 0 0 14px rgba(61,220,151,0.25);
 }
+/* A diamond that was revealed but wasn't one of the player's 3 picks —
+   shown at reveal time so they can see where they missed. */
+.scratch-cell.revealed.missed {
+  background: rgba(240,185,11,0.08);
+  border-color: rgba(240,185,11,0.35);
+  opacity: 0.75;
+}
+/* A cell the player has picked for this round, before the result is known. */
+.scratch-cell.picked {
+  border-color: rgba(139,92,246,0.75);
+  background: linear-gradient(145deg, rgba(139,92,246,0.28), var(--surface-2));
+  box-shadow: 0 0 0 2px rgba(139,92,246,0.35);
+}
+.scratch-cell.picked.revealed {
+  box-shadow: 0 0 0 2px rgba(139,92,246,0.5);
+}
 /* Tappable cells (an unrevealed round in progress) get a clear pressable affordance. */
 .scratch-cell.armed {
   cursor: pointer;
