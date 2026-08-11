@@ -179,6 +179,7 @@ async def scratch_status(user: dict = Depends(get_current_user)):
         "max_daily": cfg["scratch_max_daily"],
         "max_reached": max_reached,
         "needs_ad": needs_ad,
+        "winning_cells_needed": cfg["scratch_winning_cells"],
     }
 
 
@@ -204,8 +205,10 @@ async def scratch_play(payload: GamePlayPayload, user: dict = Depends(get_curren
             min_r, max_r = max_r, min_r
         reward = round(random.uniform(min_r, max_r), 4)
 
-        # 9-cell card, 3 cells are the "winning" symbol purely for the reveal animation
-        winning_cells = sorted(random.sample(range(9), 3))
+        # 9-cell card; how many cells are the "winning" symbol is admin-configurable
+        # (scratch_winning_cells) so the difficulty/feel can be tuned without a redeploy.
+        winning_count = max(1, min(9, cfg["scratch_winning_cells"]))
+        winning_cells = sorted(random.sample(range(9), winning_count))
 
         new_balance = await _credit(
             db, telegram_id, "scratch", reward, used_ad, {"winning_cells": winning_cells}

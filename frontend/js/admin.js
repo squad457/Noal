@@ -343,6 +343,7 @@ async function renderGamesAdmin(body) {
       <div class="admin-field"><label>Payout Range — Max (USDT)</label><input id="set-scratch-max" type="number" step="0.0001" value="${s.scratch_max_reward}" /></div>
       <div class="admin-field"><label>Free Plays per Day</label><input id="set-scratch-free" type="number" value="${s.scratch_daily_free}" /></div>
       <div class="admin-field"><label>Max Plays per Day (0 = unlimited via ads)</label><input id="set-scratch-max-daily" type="number" value="${s.scratch_max_daily}" /></div>
+      <div class="admin-field"><label>Winning Cells per Card (out of 9 — min taps needed to win)</label><input id="set-scratch-winning-cells" type="number" min="1" max="9" value="${s.scratch_winning_cells}" /></div>
       ${toggleRow("set-scratch-require-ad", "Require Ad After Free Plays", "", s.scratch_require_ad_after_free)}
     </div>
 
@@ -366,9 +367,11 @@ async function saveGameSettings() {
     scratch_max_reward: parseFloat(document.getElementById("set-scratch-max").value),
     scratch_daily_free: parseInt(document.getElementById("set-scratch-free").value, 10),
     scratch_max_daily: parseInt(document.getElementById("set-scratch-max-daily").value, 10),
+    scratch_winning_cells: parseInt(document.getElementById("set-scratch-winning-cells").value, 10),
     scratch_require_ad_after_free: document.getElementById("set-scratch-require-ad").checked,
   };
   if (payload.spin_segments.length < 2) { showToast("Add at least a couple of wheel segments", "error"); return; }
+  if (payload.scratch_winning_cells < 1 || payload.scratch_winning_cells > 9) { showToast("Winning cells must be between 1 and 9", "error"); return; }
   try {
     await adminApi("/api/admin/settings", { method: "POST", body: payload });
     showToast("Game settings saved!");

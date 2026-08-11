@@ -76,6 +76,9 @@ class SettingsUpdate(BaseModel):
     scratch_daily_free: int | None = None
     scratch_max_daily: int | None = None
     scratch_require_ad_after_free: bool | None = None
+    # How many of the 9 cells are "winning" cells each round (i.e. how many
+    # taps a player needs at minimum to complete a card). 1-9.
+    scratch_winning_cells: int | None = None
 
     @field_validator("spin_max_reward")
     @classmethod
@@ -91,6 +94,13 @@ class SettingsUpdate(BaseModel):
         min_v = info.data.get("scratch_min_reward")
         if v is not None and min_v is not None and v < min_v:
             raise ValueError("scratch_max_reward must be >= scratch_min_reward")
+        return v
+
+    @field_validator("scratch_winning_cells")
+    @classmethod
+    def check_scratch_winning_cells(cls, v):
+        if v is not None and not (1 <= v <= 9):
+            raise ValueError("scratch_winning_cells must be between 1 and 9")
         return v
 
 

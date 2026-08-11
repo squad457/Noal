@@ -4,8 +4,11 @@
  * rotation, which segment it visually stops on, scratch reveal) is cosmetic
  * animation built around the server's response, never a source of truth.
  */
-// Curated, on-brand palette (alternating cool/warm) instead of a clashing rainbow.
-const WHEEL_COLORS = ["#8B5CF6", "#3DDC97", "#EC4899", "#22D3EE", "#7C3AED", "#10B981", "#F472B6", "#0EA5E9"];
+// Curated, professional palette — deep violet/indigo family with a single warm
+// gold accent segment, echoing recognizable exchange-app wheels (Binance etc.)
+// instead of a clashing full rainbow.
+const WHEEL_COLORS = ["#7C3AED", "#4C1D95", "#8B5CF6", "#5B21B6", "#6D28D9", "#4338CA", "#9333EA", "#3730A3"];
+const WHEEL_ACCENT_COLOR = "#F0B90B"; // single gold "jackpot" slice for visual anchor, Binance-style
 
 let wheelRotation = 0;
 let wheelSpinning = false;
@@ -24,9 +27,11 @@ function renderSpinWheel(spinStatus) {
   const n = segments.length;
   const slice = 360 / n;
 
-  const gradientStops = segments.map((_, i) =>
-    `${WHEEL_COLORS[i % WHEEL_COLORS.length]} ${i * slice}deg ${(i + 1) * slice}deg`
-  ).join(", ");
+  const gradientStops = segments.map((val, i) => {
+    const isJackpot = val === Math.max(...segments);
+    const color = isJackpot ? WHEEL_ACCENT_COLOR : WHEEL_COLORS[i % WHEEL_COLORS.length];
+    return `${color} ${i * slice}deg ${(i + 1) * slice}deg`;
+  }).join(", ");
 
   const labels = segments.map((val, i) => {
     const angle = i * slice + slice / 2;
@@ -122,6 +127,9 @@ function renderScratchCard(scratchStatus) {
 
   const canPlayFree = scratchStatus.free_plays_left > 0;
   const inRound = !!scratchPending;
+  // The exact count for the active round comes from the server's play response;
+  // before a round starts we show the admin-configured default from status.
+  const neededCount = inRound ? scratchPending.winningCells.size : (scratchStatus.winning_cells_needed || 3);
   const btnLabel = inRound
     ? "Tap the cards to reveal 👆"
     : scratchStatus.max_reached
@@ -144,7 +152,7 @@ function renderScratchCard(scratchStatus) {
   return `
     <div class="card-feature p-5 mt-4 text-center">
       <span class="pill-chip mb-3">🎫 Scratch &amp; Win</span>
-      <p class="text-xs text-gray-400 mb-4">Match 3 diamonds to reveal your prize.</p>
+      <p class="text-xs text-gray-400 mb-4">Match ${neededCount} diamond${neededCount === 1 ? "" : "s"} to reveal your prize.</p>
       <div id="scratch-grid" class="scratch-grid">${cells}</div>
       <button id="btn-scratch-play" class="w-full btn-primary py-3.5 text-sm mt-5 ${blocked || scratchBusy || inRound ? "opacity-40 pointer-events-none" : ""}">
         ${scratchBusy ? "Revealing…" : btnLabel}
@@ -183,11 +191,13 @@ async function handleScratchCellTap(index) {
   if (!scratchPending || scratchRevealed.has(index)) return;
 
   scratchRevealed.add(index);
+  const needed = scratchPending.winningCells.size;
   const foundDiamonds = [...scratchRevealed].filter((i) => scratchPending.winningCells.has(i)).length;
   renderActiveTab();
 
-  // Once all 3 diamonds are found (or every cell has been tapped), finish the round.
-  if (foundDiamonds >= 3 || scratchRevealed.size >= 9) {
+  // Finish the round once the admin-configured number of diamonds is found
+  // (or every cell has been tapped, whichever comes first).
+  if (foundDiamonds >= needed || scratchRevealed.size >= 9) {
     const reward = scratchPending.reward;
     setTimeout(async () => {
       // Flash-reveal any cells the player didn't get to.

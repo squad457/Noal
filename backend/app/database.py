@@ -170,6 +170,7 @@ DEFAULT_SETTINGS = {
     "scratch_daily_free": str(settings.SCRATCH_DAILY_FREE),
     "scratch_max_daily": str(settings.SCRATCH_MAX_DAILY),
     "scratch_require_ad_after_free": "1" if settings.SCRATCH_REQUIRE_AD_AFTER_FREE else "0",
+    "scratch_winning_cells": "3",
 }
 
 
@@ -247,6 +248,7 @@ async def get_settings(db) -> dict:
         "scratch_daily_free": _i("scratch_daily_free", settings.SCRATCH_DAILY_FREE),
         "scratch_max_daily": _i("scratch_max_daily", settings.SCRATCH_MAX_DAILY),
         "scratch_require_ad_after_free": _b("scratch_require_ad_after_free", settings.SCRATCH_REQUIRE_AD_AFTER_FREE),
+        "scratch_winning_cells": max(1, min(9, _i("scratch_winning_cells", 3))),
     }
 
 
