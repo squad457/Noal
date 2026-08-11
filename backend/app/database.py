@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS transactions (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     telegram_id   INTEGER NOT NULL,
-    type          TEXT NOT NULL,      -- 'ad_reward' | 'task_reward' | 'referral_commission' | 'referral_bonus' | 'checkin' | 'withdrawal' | 'admin_adjust'
+    type          TEXT NOT NULL,      -- 'ad_reward' | 'task_reward' | 'referral_commission' | 'referral_bonus' | 'signup_bonus' | 'spin_reward' | 'scratch_reward' | 'checkin' | 'withdrawal' | 'admin_adjust'
     amount        REAL NOT NULL,      -- positive = credit, negative = debit
     balance_after REAL NOT NULL,
     meta          TEXT,               -- JSON string, e.g. {"ad_block_id": "..."} for audit trail

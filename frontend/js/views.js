@@ -25,6 +25,7 @@ const TXN_META = {
   task_reward:         { icon: "✓", label: "Completed a task",  cls: "bg-mint/10 border-mint/40 text-mint" },
   referral_commission: { icon: "👥", label: "Referral commission", cls: "bg-magenta/10 border-magenta/40 text-magenta" },
   referral_bonus:      { icon: "🎁", label: "Referral bonus",    cls: "bg-magenta/10 border-magenta/40 text-magenta" },
+  signup_bonus:        { icon: "🎉", label: "Welcome bonus",     cls: "bg-magenta/10 border-magenta/40 text-magenta" },
   spin_reward:         { icon: "🎡", label: "Spin wheel win",    cls: "bg-violet/10 border-violet/40 text-violet" },
   scratch_reward:      { icon: "🎫", label: "Scratch card win",  cls: "bg-mint/10 border-mint/40 text-mint" },
   withdrawal:          { icon: "↑", label: "Withdrawal",        cls: "bg-white/5 border-white/15 text-gray-300" },
