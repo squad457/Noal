@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>USDT Rewards</title>
+<title>Noal — USDT Rewards</title>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 
 <script>
@@ -17,14 +17,16 @@
     theme: {
       extend: {
         colors: {
-          base: '#0B0F19',
-          panel: '#121826',
-          neon: '#10B981',
-          cyan: '#06B6D4',
+          base: '#12161C',
+          panel: '#191E26',
+          gold: '#C99A3B',
+          teal: '#3F8C7B',
+          paper: '#F2EDE1',
         },
         fontFamily: {
-          display: ['"Space Grotesk"', 'sans-serif'],
+          display: ['"Fraunces"', 'serif'],
           body: ['"Inter"', 'sans-serif'],
+          mono: ['"IBM Plex Mono"', 'monospace'],
         },
       },
     },
@@ -33,28 +35,29 @@
 </head>
 <body class="bg-base text-white font-body min-h-screen pb-24 overflow-x-hidden">
 
-<!-- Splash / Loading Screen (Simple Fast Pulse Logo) -->
+<!-- Splash / Loading Screen -->
 <div id="splash">
-  <div class="splash-logo font-display font-extrabold text-lg text-neon tracking-wider">USDT</div>
-  <p class="font-display font-medium text-sm text-gray-400 tracking-wider">USDT Rewards</p>
+  <div class="splash-logo">N</div>
+  <p class="font-display font-semibold text-base text-[#E9E6DF] tracking-wide">Noal</p>
+  <p id="splash-fallback">
+    This ledger only opens inside Telegram.<br>
+    Please launch it from <a href="https://t.me/UsdtReward1bot/app" target="_top">@UsdtReward1bot</a>.
+  </p>
 </div>
 
-<!-- Ambient background glow -->
-<div class="fixed inset-0 pointer-events-none z-0">
-  <div class="absolute -top-24 -left-24 w-72 h-72 bg-neon/20 rounded-full blur-[100px]"></div>
-  <div class="absolute top-1/3 -right-24 w-72 h-72 bg-cyan/20 rounded-full blur-[100px]"></div>
-</div>
+<!-- Fine paper-grain backdrop -->
+<div class="fixed inset-0 pointer-events-none z-0 ledger-bg"></div>
 
 <!-- Top bar -->
-<header class="relative z-10 flex items-center justify-between px-5 pt-5 pb-3">
+<header class="relative z-10 flex items-center justify-between px-5 pt-5 pb-4">
   <div class="flex items-center gap-3">
-    <div id="user-avatar" class="w-9 h-9 rounded-full bg-gradient-to-tr from-neon/30 to-cyan/30 border border-neon/50 flex items-center justify-center font-display font-bold text-sm text-neon uppercase shadow-lg shadow-neon/10 overflow-hidden shrink-0">U</div>
+    <div id="user-avatar" class="brand-mark overflow-hidden shrink-0">N</div>
     <div>
-      <span class="font-display font-semibold text-lg">USDT<span class="text-neon">Rewards</span></span>
-      <p id="user-name-label" class="text-[10px] text-gray-400 -mt-1 truncate max-w-[120px]"></p>
+      <span class="font-display font-semibold text-lg tracking-tight">Noal</span>
+      <p id="user-name-label" class="text-[10px] text-[#8B8F94] -mt-0.5 truncate max-w-[130px]"></p>
     </div>
   </div>
-  <div id="streak-pill" class="glass px-3 py-1.5 rounded-full flex items-center gap-1.5 text-sm font-medium">
+  <div id="streak-pill" class="flex items-center gap-1.5 font-mono text-sm text-gold">
     <span>🔥</span><span id="streak-count">0</span>
   </div>
 </header>
@@ -71,22 +74,22 @@
 <div id="toast" class="fixed left-1/2 -translate-x-1/2 bottom-24 z-50 hidden"></div>
 
 <!-- Bottom Nav -->
-<nav class="fixed bottom-0 left-0 right-0 z-40 glass-nav">
+<nav class="fixed bottom-0 left-0 right-0 z-40 ledger-nav">
   <div class="grid grid-cols-4 max-w-md mx-auto">
     <button data-tab="home" class="nav-btn active-nav">
-      <svg viewBox="0 0 24 24" class="nav-icon"><path d="M3 11.5 12 4l9 7.5M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg viewBox="0 0 24 24" class="nav-icon"><path d="M3 11.5 12 4l9 7.5M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>Home</span>
     </button>
     <button data-tab="earn" class="nav-btn">
-      <svg viewBox="0 0 24 24" class="nav-icon"><path d="M5 4h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 4v5h5M9 13l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg viewBox="0 0 24 24" class="nav-icon"><path d="M5 4h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 4v5h5M9 13l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>Earn</span>
     </button>
     <button data-tab="wallet" class="nav-btn">
-      <svg viewBox="0 0 24 24" class="nav-icon"><rect x="3" y="6" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M16 14h2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <svg viewBox="0 0 24 24" class="nav-icon"><rect x="3" y="6" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 9h18M16 14h2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
       <span>Wallet</span>
     </button>
     <button data-tab="invite" class="nav-btn">
-      <svg viewBox="0 0 24 24" class="nav-icon"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.2a3 3 0 0 1 0 5.8M18.5 14c1.9.6 3.5 2.5 3.5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <svg viewBox="0 0 24 24" class="nav-icon"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.2a3 3 0 0 1 0 5.8M18.5 14c1.9.6 3.5 2.5 3.5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
       <span>Invite</span>
     </button>
   </div>

@@ -25,8 +25,8 @@ function showToast(message, type = "success") {
   const toast = document.getElementById("toast");
   toast.textContent = message;
   toast.className =
-    `fixed left-1/2 -translate-x-1/2 bottom-24 z-50 toast-visible glass-card px-5 py-3 text-sm font-medium ` +
-    (type === "error" ? "text-red-400" : "text-neon");
+    `fixed left-1/2 -translate-x-1/2 bottom-24 z-50 toast-visible card px-5 py-3 text-sm font-medium ` +
+    (type === "error" ? "text-red-400" : "text-gold");
   setTimeout(() => { toast.className = "fixed left-1/2 -translate-x-1/2 bottom-24 z-50 hidden"; }, 2500);
 }
 
@@ -140,7 +140,7 @@ document.addEventListener("click", async (e) => {
     state.selectedMethod = method;
     document.querySelectorAll(".method-btn").forEach(b => {
       const active = b === methodBtn;
-      b.className = `method-btn glass-card py-2.5 text-xs font-semibold text-center ${active ? 'border-neon text-neon bg-neon/10' : 'text-gray-400'}`;
+      b.className = `method-btn card py-2.5 text-xs font-semibold text-center ${active ? 'border-gold text-gold bg-gold/10' : 'text-gray-400'}`;
     });
     const label = document.getElementById("payout-label");
     const input = document.getElementById("input-payout-id");
@@ -159,8 +159,8 @@ document.addEventListener("click", async (e) => {
   // Withdrawal tier selection
   const tierBtn = e.target.closest(".tier-btn");
   if (tierBtn) {
-    document.querySelectorAll(".tier-btn").forEach(b => b.classList.remove("border-glow"));
-    tierBtn.classList.add("border-glow");
+    document.querySelectorAll(".tier-btn").forEach(b => b.classList.remove("card-feature"));
+    tierBtn.classList.add("card-feature");
     tierBtn.dataset.selected = "true";
     document.querySelectorAll(".tier-btn").forEach(b => { if (b !== tierBtn) delete b.dataset.selected; });
     const amtInput = document.getElementById("input-withdraw-amount");
@@ -205,22 +205,34 @@ document.addEventListener("click", async (e) => {
 // ---------- Boot ----------
 (function init() {
   const BOT_APP_URL = "https://t.me/UsdtReward1bot/app";
+
+  // If opened outside Telegram (no initData), the API can never authenticate,
+  // so loadTabData() will always fail and the splash would spin forever.
+  // Stop that here: hide the splash immediately and show a real gate instead
+  // of a permanently-frozen loading screen.
   if (!window.Telegram?.WebApp?.initData) {
+    document.getElementById("splash")?.classList.add("hide");
+
     const gate = document.createElement("div");
-    gate.className = "fixed inset-0 z-50 bg-base/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center";
+    gate.className = "fixed inset-0 z-[1000] bg-base flex flex-col items-center justify-center p-6 text-center ledger-bg";
     gate.innerHTML = `
-      <div class="w-16 h-16 rounded-2xl bg-neon/10 flex items-center justify-center text-2xl mb-4">🤖</div>
-      <h2 class="font-display text-lg font-bold mb-2">Open in Telegram</h2>
-      <p class="text-xs text-gray-400 max-w-xs mb-6">This app is designed to run inside Telegram Mini Apps. Tap below to launch.</p>
-      <a href="${BOT_APP_URL}" class="btn-primary px-6 py-3 text-sm font-semibold rounded-xl text-white">🚀 Launch in Telegram</a>
+      <div class="brand-mark w-14 h-14 text-xl mb-4">N</div>
+      <h2 class="font-display text-lg font-bold mb-2">Open this ledger in Telegram</h2>
+      <p class="text-xs text-gray-400 max-w-xs mb-6">Noal runs as a Telegram Mini App and needs Telegram to verify your account. Launch it from the bot below.</p>
+      <a href="${BOT_APP_URL}" class="btn-primary px-6 py-3 text-sm font-semibold rounded-xl text-white">Launch in Telegram</a>
     `;
     document.body.appendChild(gate);
+    return; // don't attempt to boot the app shell without Telegram context
   }
 
   tg?.ready();
   tg?.expand();
-  tg?.setHeaderColor?.("#0B0F19");
-  tg?.setBackgroundColor?.("#0B0F19");
+  tg?.setHeaderColor?.("#12161C");
+  tg?.setBackgroundColor?.("#12161C");
+
+  // Safety net: if something else stalls loadTabData (slow network, backend
+  // hiccup), never leave the splash frozen indefinitely.
+  setTimeout(() => document.getElementById("splash")?.classList.add("hide"), 6000);
 
   switchTab("home");
 })();

@@ -1,75 +1,178 @@
+/* ============================================================
+   Noal — "Digital Passbook" design system
+   A ledger/passbook aesthetic: dashed perforations, stamped
+   marks, tabular figures — built for a rewards balance product,
+   not a neon crypto dashboard.
+   ============================================================ */
+
+:root {
+  --ink:      #12161C;
+  --panel:    #191E26;
+  --panel-2:  #20262F;
+  --gold:     #C99A3B;
+  --gold-dim: rgba(201,154,59,0.14);
+  --teal:     #3F8C7B;
+  --teal-dim: rgba(63,140,123,0.14);
+  --paper:    #F2EDE1;
+  --ink-text: #E9E6DF;
+  --muted:    #8B8F94;
+  --rule:     rgba(242,237,225,0.14);
+  --danger:   #C2604F;
+  --danger-dim: rgba(194,96,79,0.14);
+}
+
 * { -webkit-tap-highlight-color: transparent; }
-body { font-family: 'Inter', sans-serif; }
-h1, h2, h3, .font-display { font-family: 'Space Grotesk', sans-serif; }
+html, body { background: var(--ink); }
+body {
+  font-family: 'Inter', sans-serif;
+  color: var(--ink-text);
+  font-variant-numeric: tabular-nums;
+}
+h1, h2, h3, .font-display { font-family: 'Fraunces', serif; }
+.font-mono { font-family: 'IBM Plex Mono', monospace; }
 
-/* --- Glassmorphism --- */
-.glass {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+/* --- Fine paper-grain backdrop (replaces glow orbs) --- */
+.ledger-bg {
+  background-image:
+    radial-gradient(rgba(242,237,225,0.035) 1px, transparent 1px);
+  background-size: 14px 14px;
 }
 
-.glass-card {
-  background: linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: 20px;
+/* --- Cards: ledger panel, not glass --- */
+.card {
+  background: var(--panel);
+  border: 1px solid rgba(242,237,225,0.07);
+  border-radius: 14px;
+}
+.card-stamped {
+  background: var(--panel);
+  border: 1px solid rgba(242,237,225,0.07);
+  border-radius: 14px;
+  position: relative;
+}
+/* Featured/highlighted card — gold ledger-strip top edge */
+.card-feature {
+  background: var(--panel);
+  border: 1px solid rgba(242,237,225,0.07);
+  border-top: 2px solid var(--gold);
+  border-radius: 14px;
 }
 
-.glass-nav {
-  background: rgba(11, 15, 25, 0.85);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  padding-bottom: env(safe-area-inset-bottom);
+/* Dashed perforation divider, evokes a tear-off receipt edge */
+.perf-divider {
+  border: none;
+  border-top: 1.5px dashed var(--rule);
+  margin: 18px 0;
 }
 
-/* --- Bottom nav buttons --- */
-.nav-btn {
+/* --- Ledger row (used in Earn / Wallet / Invite lists) --- */
+.ledger-row {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 10px 0 8px;
-  color: #6B7280;
-  font-size: 11px;
-  font-weight: 500;
-  transition: color 0.2s ease;
+  gap: 10px;
+  padding: 13px 0;
+  border-bottom: 1px dashed var(--rule);
 }
-.nav-btn.active-nav { color: #10B981; }
-.nav-icon { width: 22px; height: 22px; }
+.ledger-row:last-child { border-bottom: none; }
+.ledger-leader {
+  flex: 1 1 auto;
+  min-width: 12px;
+  height: 0;
+  border-bottom: 1px dotted rgba(242,237,225,0.22);
+  margin: 0 2px;
+  align-self: center;
+  display: none; /* enabled per-context via .with-leader */
+}
+.with-leader .ledger-leader { display: block; }
+
+/* --- Verified stamp ring (signature element) --- */
+.stamp-ring {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px dashed var(--gold);
+  border-radius: 999px;
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
 
 /* --- Buttons --- */
 .btn-primary {
-  background: linear-gradient(135deg, #10B981, #06B6D4);
-  color: #041014;
+  background: var(--gold);
+  color: #1B140A;
   font-weight: 700;
-  border-radius: 16px;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  border-radius: 12px;
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
-.btn-primary:active { transform: scale(0.97); }
-.btn-primary:disabled { opacity: 0.4; pointer-events: none; }
+.btn-primary:active { transform: scale(0.97); filter: brightness(0.95); }
+.btn-primary:disabled, .btn-primary.opacity-40 { opacity: 0.35; pointer-events: none; }
 
 .btn-secondary {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 16px;
+  background: transparent;
+  border: 1px solid rgba(242,237,225,0.18);
+  color: var(--ink-text);
+  border-radius: 12px;
   transition: transform 0.15s ease, background 0.15s ease;
 }
 .btn-secondary:active { transform: scale(0.97); }
 
-/* --- Glow / accents --- */
-.text-glow-green { text-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
-.border-glow { box-shadow: 0 0 0 1px rgba(16,185,129,0.3), 0 0 24px rgba(16,185,129,0.15); }
+.btn-task {
+  border-radius: 10px;
+}
+
+/* --- Header wordmark --- */
+.brand-mark {
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  background: var(--gold-dim);
+  border: 1px solid rgba(201,154,59,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--gold);
+}
+
+/* --- Streak stamps --- */
+.streak-dot {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  border: 1px dashed rgba(242,237,225,0.2);
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+.streak-dot.done {
+  background: var(--gold-dim);
+  color: var(--gold);
+  border: 1px solid var(--gold);
+}
+.streak-dot.today {
+  border: 1.5px dashed var(--gold);
+  color: var(--gold);
+}
+
+/* --- Status stamps (replace glow pill badges) --- */
+.stamp-badge {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
+  padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid transparent;
+}
+.stamp-badge.pending  { color: var(--gold); border-color: rgba(201,154,59,0.5); background: var(--gold-dim); }
+.stamp-badge.approved { color: var(--teal); border-color: rgba(63,140,123,0.5); background: var(--teal-dim); }
+.stamp-badge.rejected { color: var(--danger); border-color: rgba(194,96,79,0.5); background: var(--danger-dim); }
 
 /* --- Skeleton loading --- */
 .skeleton {
-  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 37%, rgba(255,255,255,0.04) 63%);
+  background: linear-gradient(90deg, rgba(242,237,225,0.03) 25%, rgba(242,237,225,0.07) 37%, rgba(242,237,225,0.03) 63%);
   background-size: 400% 100%;
   animation: skeleton-loading 1.4s ease infinite;
-  border-radius: 12px;
+  border-radius: 10px;
 }
 @keyframes skeleton-loading {
   0% { background-position: 100% 50%; }
@@ -77,68 +180,82 @@ h1, h2, h3, .font-display { font-family: 'Space Grotesk', sans-serif; }
 }
 
 /* --- Toast --- */
-.toast-visible {
-  animation: toast-in 0.25s ease forwards;
-}
+.toast-visible { animation: toast-in 0.25s ease forwards; }
 @keyframes toast-in {
   from { opacity: 0; transform: translate(-50%, 10px); }
   to { opacity: 1; transform: translate(-50%, 0); }
 }
 
-/* --- Streak dots --- */
-.streak-dot {
-  width: 28px; height: 28px;
-  border-radius: 999px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700;
-  border: 1px solid rgba(255,255,255,0.1);
-  color: #6B7280;
+/* --- Bottom nav: underline tab bar, not glass pill icons --- */
+.ledger-nav {
+  background: rgba(18, 22, 28, 0.96);
+  border-top: 1px dashed var(--rule);
+  padding-bottom: env(safe-area-inset-bottom);
 }
-.streak-dot.done {
-  background: linear-gradient(135deg, #10B981, #06B6D4);
-  color: #041014;
-  border: none;
-}
-.streak-dot.today {
-  border-color: #10B981;
-  color: #10B981;
-}
-
-/* --- Splash Screen Overlay (Simple Fast Pulse Logo) --- */
-#splash {
-  position: fixed;
-  inset: 0;
-  z-index: 999;
-  background: #0B0F19;
+.nav-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
+  gap: 4px;
+  padding: 12px 0 10px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  position: relative;
+  transition: color 0.2s ease;
+}
+.nav-btn::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 50%;
+  width: 0; height: 2px;
+  background: var(--gold);
+  transform: translateX(-50%);
+  transition: width 0.2s ease;
+}
+.nav-btn.active-nav { color: var(--gold); }
+.nav-btn.active-nav::after { width: 22px; }
+.nav-icon { width: 21px; height: 21px; }
+
+/* --- Splash / loading screen --- */
+#splash {
+  position: fixed; inset: 0; z-index: 999;
+  background: var(--ink);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px;
   transition: opacity 0.35s ease, visibility 0.35s ease;
+  padding: 24px; text-align: center;
 }
-#splash.hide {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
+#splash.hide { opacity: 0; visibility: hidden; pointer-events: none; }
 .splash-logo {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Space Grotesk', sans-serif;
+  width: 60px; height: 60px;
+  border-radius: 14px;
+  background: var(--gold-dim);
+  border: 1px dashed var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif;
   font-weight: 700;
-  font-size: 26px;
-  color: #10B981;
-  box-shadow: 0 0 30px rgba(16, 185, 129, 0.25);
-  animation: pulseLogo 1.5s ease-in-out infinite;
+  font-size: 22px;
+  color: var(--gold);
+  animation: pulseLogo 1.8s ease-in-out infinite;
 }
 @keyframes pulseLogo {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
-  50% { transform: scale(1.08); box-shadow: 0 0 40px rgba(16, 185, 129, 0.45); }
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.06); opacity: 0.85; }
 }
+#splash-fallback {
+  display: none;
+  max-width: 280px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+#splash-fallback a {
+  color: var(--gold);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px dashed var(--gold);
+}
+#splash.show-fallback .splash-logo { animation: none; opacity: 1; }
+#splash.show-fallback #splash-fallback { display: block; }
