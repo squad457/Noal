@@ -287,7 +287,7 @@ document.addEventListener("click", async (e) => {
     gate.className = "fixed inset-0 z-[1000] bg-base flex flex-col items-center justify-center p-6 text-center";
     gate.innerHTML = `
       <div class="brand-mark w-14 h-14 text-xl mb-4">N</div>
-      <h2 class="font-display text-lg font-bold mb-2">Open this ledger in Telegram</h2>
+      <h2 class="font-display text-lg font-bold mb-2">USDT Reward works only in Telegram</h2>
       <p class="text-xs text-gray-400 max-w-xs mb-6">USDT Reward runs as a Telegram Mini App and needs Telegram to verify your account. Launch it from the bot below.</p>
       <a href="${BOT_APP_URL}" class="btn-primary px-6 py-3 text-sm font-semibold rounded-xl text-white">Launch in Telegram</a>
     `;
